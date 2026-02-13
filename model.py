@@ -34,6 +34,12 @@ class OptimalSubgraphGNN(nn.Module):
             self.mp_architecture = nn.Identity()
             self.embedding_dim = in_channels
 
+        # Parametrise (make learnable) the adjacency matrix
+        if adjacency_matrix is not None:
+            self.adapt_adj = nn.Parameter(adjacency_matrix.clone().detach().requires_grad_(True))
+        else:
+            self.adapt_adj = None
+
         # Edges: using node embeddings and original edge weights
         mlp_in_channels = 2 * self.embedding_dim + 1 # two node representations + link weight
         # mlp_in_channels = self.embedding_dim
@@ -43,12 +49,6 @@ class OptimalSubgraphGNN(nn.Module):
             self.edge_mlp_architecture.append(mlp_activation(inplace=True))
             mlp_in_channels = mlp_unit
         self.edge_mlp_architecture.append(nn.Linear(mlp_in_channels, 1))
-
-        # Parametrise (make learnable) the adjacency matrix
-        if adjacency_matrix is not None:
-            self.adapt_adj = nn.Parameter(adjacency_matrix.clone().detach().requires_grad_(True))
-        else:
-            self.adapt_adj = None
 
     def forward(self,
                 x: torch.Tensor,
