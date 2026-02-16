@@ -27,15 +27,24 @@ def generate_sample_graph(
     demand_potential_distro = torch.distributions.Normal(1, demand_potential_std)
 
     # construct adjacency matrix
-    base_distances = torch.abs(edge_distro.sample((no_nodes, no_nodes)))
-    mask = ((torch.rand(no_nodes, no_nodes) < edge_prob)
-            & (torch.triu(torch.ones((no_nodes, no_nodes)), diagonal=1) == 1))
-    base_distances = base_distances * mask
-    base_distances = base_distances + base_distances.T
-    min_dist = kwargs.get("minimal_distance", 10)
-    base_distances[(base_distances < min_dist) & (base_distances != 0)] = min_dist
-    adj_matrix = (base_distances > 0).int()
-    distances = shortest_path_exact(adj_matrix)
+    connected = False
+    while not connected:
+        base_distances = torch.abs(edge_distro.sample((no_nodes, no_nodes)))
+        mask = ((torch.rand(no_nodes, no_nodes) < edge_prob).int()
+                & (torch.triu(torch.ones((no_nodes, no_nodes)), diagonal=1) == 1))
+        base_distances = base_distances * mask
+        base_distances = base_distances + base_distances.T
+        min_dist = kwargs.get("minimal_distance", 10)
+        base_distances[(base_distances < min_dist) & (base_distances != 0)] = min_dist
+        base_distances = base_distances + base_distances.T
+        adj_matrix = (base_distances > 0).int()
+
+        if kwargs.get("connected", True):
+            connected = check_if_connected(adj_matrix)
+        else:
+            connected = True
+
+    distances = shortest_path_exact(base_distances)
 
     # create demand potential, start from number of people within a node
     node_features = node_distro.sample((no_nodes, no_nodes))
@@ -49,9 +58,11 @@ def generate_sample_graph(
 
 
 def shortest_path_exact(
-        adjacency_matrix: torch.Tensor
+        adjacency_matrix: torch.Tensor,
+        infty: float = 1e7
 ) -> torch.Tensor:
     dist = adjacency_matrix.clone()
+    dist[dist == 0] = infty
     n = dist.size(0)
 
     for k in range(n):
@@ -59,3 +70,23 @@ def shortest_path_exact(
 
     return dist
 
+
+def check_if_connected(
+        adj_matrix: torch.Tensor
+) -> bool:
+    n = len(adj_matrix)
+    visited = [False] * n
+
+    def iter_foo(u):
+        visited[u] = True
+        for v in range(n):
+            if adj_matrix[u][v] == 1 and not visited[v]:
+                iter_foo(v)
+
+    iter_foo(0)
+
+    return all(visited)
+
+
+a, b, c = generate_sample_graph()
+x = 0
