@@ -6,7 +6,11 @@ from torch import Tensor
 class RailCostBenefitLoss(nn.Module):
     def __init__(self,
                  delta: float=1e-4,
-                 gamma: float=1e-1):
+                 gamma: float=1e-1,
+                 utility_scale: float = -1e-2,
+                 priority_rail: float = 0.5,
+                 loss_component_balance: float = 1.0
+                 ):
         """
         Loss function
         ---
@@ -14,10 +18,16 @@ class RailCostBenefitLoss(nn.Module):
         :param gamma: Smoothing parameter for the softmin.
                Smaller values = better accuracy (though, negligible difference).
                Larger values = smoother gradients.
+        :param utility_scale: to scale utilities (e^{ax}/(e^{ax}+e^{ay}) is sensitive to a
+        :param priority_rail: scaling of the distance with the new service (e.g. greater speed)
+        :param loss_component_balance: balance between cost and utility gain
         """
         super(RailCostBenefitLoss, self).__init__()
         self.delta = delta
         self.gamma = gamma
+        self.utility_scale = utility_scale
+        self.priority_rail = priority_rail
+        self.loss_component_balance = loss_component_balance
 
     @staticmethod
     @torch.jit.script
@@ -60,18 +70,12 @@ class RailCostBenefitLoss(nn.Module):
     def forward(self,
                 soft_adj: torch.Tensor,
                 distances: torch.Tensor,
-                demand_potential: torch.Tensor,
-                utility_scale: float=-1e-2,
-                priority_rail: float=0.5,
-                loss_component_balance: float=1.0) -> Tensor:
+                demand_potential: torch.Tensor) -> Tensor:
         """
         Function to calculate all components of the loss
         :param soft_adj: soft adjacency matrix (optimisation argument)
         :param distances: distance matrix
         :param demand_potential: demand potential matrix (travellers between cities)
-        :param utility_scale: to scale utilities (e^{ax}/(e^{ax}+e^{ay}) is sensitive to a
-        :param priority_rail: scaling of the distance with the new service (e.g. greater speed)
-        :param loss_component_balance: balance between cost and utility gain
         :return: loss (scalar)
         """
         # First loss, cost of the infrastructure
@@ -81,13 +85,13 @@ class RailCostBenefitLoss(nn.Module):
         shortest_paths = self._shortest_path(soft_adj, distances, delta=self.delta, gamma=self.gamma)
 
         # Choice probability matrix
-        exp_ut_rail = torch.exp(utility_scale * shortest_paths * priority_rail)
-        exp_ut_base = torch.exp(utility_scale * distances)
+        exp_ut_rail = torch.exp(self.utility_scale * shortest_paths * self.priority_rail)
+        exp_ut_base = torch.exp(self.utility_scale * distances)
 
         choice_matrix = exp_ut_rail / (exp_ut_rail + exp_ut_base)
-        utility_gain = demand_potential * choice_matrix * (priority_rail * shortest_paths - distances)
+        utility_gain = demand_potential * choice_matrix * (self.priority_rail * shortest_paths - distances)
 
-        return loss_cost + loss_component_balance * utility_gain.sum()
+        return loss_cost + self.loss_component_balance * utility_gain.sum()
 
 
 

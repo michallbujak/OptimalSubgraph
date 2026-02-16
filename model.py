@@ -7,7 +7,7 @@ from torch_geometric.utils import dense_to_sparse
 class OptimalSubgraphGNN(nn.Module):
     def __init__(self,
                  in_channels: int,
-                 adjacency_matrix: torch.Tensor or None = None,
+                 adjacency_matrix: torch.Tensor | None = None,
                  mp_units: tuple=(64,64,48),
                  mp_activation: str='ReLU',
                  mlp_units: tuple=(32, 16),
