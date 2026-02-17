@@ -13,6 +13,7 @@ class RailCostBenefitLoss(nn.Module):
                  utility_scale: float = -1e-2,
                  priority_rail: float = 0.5,
                  loss_component_balance: float = 1.0,
+                 utility_smoother: float = 1e-3,
                  entropy_thresholds: list | None = None,
                  entropy_levels: list | None = None,
                  mask_level: float = 1e4
@@ -27,9 +28,10 @@ class RailCostBenefitLoss(nn.Module):
         :param utility_scale: to scale utilities (e^{ax}/(e^{ax}+e^{ay}) is sensitive to a
         :param priority_rail: scaling of the distance with the new service (e.g. greater speed)
         :param loss_component_balance: balance between cost and utility gain
+        :param utility_smoother: lower values for the exponent function
         :param entropy_thresholds: thresholds for increasing penalties with entropy
         :param entropy_levels: penalty levels with entropy (following thresholds)
-        :param mask_level: penalty level for assigning links that do not exists in the original graph
+        :param mask_level: penalty level for assigning links that do not exist in the original graph
         """
         super(RailCostBenefitLoss, self).__init__()
         self.delta = delta
@@ -37,6 +39,7 @@ class RailCostBenefitLoss(nn.Module):
         self.utility_scale = utility_scale
         self.priority_rail = priority_rail
         self.loss_component_balance = loss_component_balance
+        self.utility_smoother = utility_smoother
 
         if entropy_thresholds is None:
             self.entropy_thresholds = [0]
@@ -114,7 +117,9 @@ class RailCostBenefitLoss(nn.Module):
         choice_matrix = exp_ut_rail / (exp_ut_rail + exp_ut_base)
 
         # Second loss
-        utility_gain = flow * choice_matrix * (distances - self.priority_rail * shortest_paths)
+        distance_saved = distances - self.priority_rail * shortest_paths
+        utility_gain = flow * choice_matrix * distance_saved
+        utility_gain = torch.exp(self.utility_smoother * utility_gain)
 
         # Third loss
         inverse_soft = torch.eye(soft_adj.size(0), device=soft_adj.device) - soft_adj

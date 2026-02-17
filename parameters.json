@@ -23,7 +23,7 @@
     "gamma": 1e-1,
     "utility_scale": -1e-2,
     "priority_rail": 0.5,
-    "loss_component_balance": 1e0,
+    "loss_component_balance": -1e0,
     "entropy_thresholds": [1e2, 3e2, 5e2, 8e2],
     "entropy_levels": [1, 1e1, 1e1, 1e1, 1e1],
     "mask_level": 1e4

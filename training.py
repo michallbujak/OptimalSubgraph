@@ -23,7 +23,8 @@ def train(
 
     loss_progress = []
 
-    x = torch.eye(adjacency_matrix.size(0)).to(adjacency_matrix.device)
+    # x = torch.eye(adjacency_matrix.size(0)).to(adjacency_matrix.device)
+    x = adjacency_matrix.clone()
 
     for epoch in range(num_epochs):
         soft_adj = model(x, adjacency_matrix)
