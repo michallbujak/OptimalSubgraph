@@ -86,3 +86,19 @@ def check_if_connected(
     iter_foo(0)
 
     return all(visited)
+
+
+def load_data(
+        input_args: dict
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    import pandas as pd
+
+    adjacency_matrix = pd.read_csv(input_args["adjacency_matrix_path"], index_col=0)
+    distances = pd.read_csv(input_args["distances_matrix_path"], index_col=0)
+    flow = pd.read_csv(input_args["flow_matrix_path"], index_col=0)
+
+    adjacency_matrix = torch.from_numpy(adjacency_matrix.to_numpy()).float()
+    distances = torch.from_numpy(distances.to_numpy()).float()
+    flow = torch.from_numpy(flow.to_numpy()).float()
+
+    return adjacency_matrix, distances, flow

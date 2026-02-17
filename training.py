@@ -7,39 +7,41 @@ def train(
         model: OptimalSubgraphGNN,
         adjacency_matrix: torch.Tensor,
         distances: torch.Tensor,
-        demand_potential: torch.Tensor,
+        flow: torch.Tensor,
+        loss_calculator: RailCostBenefitLoss,
         parameters: dict,
-        optimizer: torch.optim.Optimizer | None = None,
-        **kwargs,
+        optimizer: torch.optim.Optimizer | None = None
 ) -> None:
     num_epochs = parameters['num_epochs']
     model.train()
 
-    loss_calculator = RailCostBenefitLoss(**parameters.get('loss_args', {}))
-
     if optimizer is None:
         optimizer = torch.optim.Adam(
             model.parameters(),
-            *parameters.get('optimizer_args', {})
+            **parameters.get('optimizer_args', {})
         )
 
     loss_progress = []
 
-    x = adjacency_matrix
+    x = torch.eye(adjacency_matrix.size(0)).to(adjacency_matrix.device)
 
     for epoch in range(num_epochs):
         soft_adj = model(x, adjacency_matrix)
-        loss = loss_calculator(soft_adj, distances, demand_potential)
+        loss = loss_calculator(soft_adj, adjacency_matrix, distances, flow, epoch)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        if (epoch % 50 == 0) & (kwargs.get("show_training_progress", False)):
-            loss_progress.append(loss.item())
+        loss_progress.append(loss.item())
+
+        if (epoch % 50 == 0) & (parameters.get("show_training_progress", False)):
             print(f'Epoch {epoch}, Loss: {loss_progress[-1]}')
 
-    if kwargs.get("show_training_output", True):
+        if epoch == 800:
+            pppp = 0
+
+    if parameters.get("show_training_output", True):
         import matplotlib.pyplot as plt
         import pandas as pd
 

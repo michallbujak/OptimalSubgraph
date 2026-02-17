@@ -1,3 +1,6 @@
+from bisect import bisect_left as bisect
+
+import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -9,7 +12,10 @@ class RailCostBenefitLoss(nn.Module):
                  gamma: float=1e-1,
                  utility_scale: float = -1e-2,
                  priority_rail: float = 0.5,
-                 loss_component_balance: float = 1.0
+                 loss_component_balance: float = 1.0,
+                 entropy_thresholds: list | None = None,
+                 entropy_levels: list | None = None,
+                 mask_level: float = 1e4
                  ):
         """
         Loss function
@@ -21,6 +27,9 @@ class RailCostBenefitLoss(nn.Module):
         :param utility_scale: to scale utilities (e^{ax}/(e^{ax}+e^{ay}) is sensitive to a
         :param priority_rail: scaling of the distance with the new service (e.g. greater speed)
         :param loss_component_balance: balance between cost and utility gain
+        :param entropy_thresholds: thresholds for increasing penalties with entropy
+        :param entropy_levels: penalty levels with entropy (following thresholds)
+        :param mask_level: penalty level for assigning links that do not exists in the original graph
         """
         super(RailCostBenefitLoss, self).__init__()
         self.delta = delta
@@ -28,6 +37,17 @@ class RailCostBenefitLoss(nn.Module):
         self.utility_scale = utility_scale
         self.priority_rail = priority_rail
         self.loss_component_balance = loss_component_balance
+
+        if entropy_thresholds is None:
+            self.entropy_thresholds = [0]
+        else:
+            self.entropy_thresholds = entropy_thresholds
+        if entropy_levels is None:
+            self.entropy_levels = [0]
+        else:
+            self.entropy_levels = entropy_levels
+
+        self.mask_level = mask_level
 
     @staticmethod
     @torch.jit.script
@@ -68,14 +88,18 @@ class RailCostBenefitLoss(nn.Module):
 
     def forward(self,
                 soft_adj: torch.Tensor,
+                original_adj: torch.Tensor,
                 distances: torch.Tensor,
-                demand_potential: torch.Tensor) -> Tensor:
+                flow: torch.Tensor,
+                epoch: float) -> Tensor:
         """
         Function to calculate all components of the loss
-        :param soft_adj: soft adjacency matrix (optimisation argument)
+        :param soft_adj: soft adjacency matrix (optimization argument)
+        :param original_adj: original adjacency matrix
         :param distances: distance matrix
-        :param demand_potential: demand potential matrix (travellers between cities)
-        :return: loss (scalar)
+        :param flow: demand potential matrix (travellers between cities)
+        :param epoch: current epoch to tune BCE loss
+        :return: total loss (scalar)
         """
         # First loss, cost of the infrastructure
         loss_cost = torch.sum(torch.mul(soft_adj,distances))
@@ -88,9 +112,26 @@ class RailCostBenefitLoss(nn.Module):
         exp_ut_base = torch.exp(self.utility_scale * distances)
 
         choice_matrix = exp_ut_rail / (exp_ut_rail + exp_ut_base)
-        utility_gain = demand_potential * choice_matrix * (self.priority_rail * shortest_paths - distances)
 
-        return loss_cost + self.loss_component_balance * utility_gain.sum()
+        # Second loss
+        utility_gain = flow * choice_matrix * (distances - self.priority_rail * shortest_paths)
+
+        # Third loss
+        inverse_soft = torch.eye(soft_adj.size(0), device=soft_adj.device) - soft_adj
+        entropy_loss = (torch.square(torch.mul(soft_adj, inverse_soft))).sum()
+        entropy_scale = self.entropy_levels[bisect(self.entropy_thresholds, epoch)]
+
+        # Fourth loss
+        mask_loss = (soft_adj * (1 - original_adj)).sum()
+
+        return (
+                loss_cost +
+                self.loss_component_balance * utility_gain.sum() +
+                entropy_loss * entropy_scale +
+                self.mask_level * mask_loss
+        )
+
+
 
 
 

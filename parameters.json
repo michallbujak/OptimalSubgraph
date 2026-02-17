@@ -1,5 +1,11 @@
 {
   "num_epochs": 1000,
+  "input": {
+    "exact_data": true,
+    "adjacency_matrix_path": "data/adj_poland.csv",
+    "distances_matrix_path": "data/dist_poland.csv",
+    "flow_matrix_path": "data/flow_poland.csv"
+  },
   "random_graph": {
     "no_nodes": 16,
     "edge_prob": 0.3,
@@ -15,9 +21,12 @@
   "loss_args": {
     "delta": 1e-4,
     "gamma": 1e-1,
-    "utility_scale": -1e-3,
+    "utility_scale": -1e-2,
     "priority_rail": 0.5,
-    "loss_component_balance": 1.0
+    "loss_component_balance": 1e0,
+    "entropy_thresholds": [1e2, 3e2, 5e2, 8e2],
+    "entropy_levels": [1, 1e1, 1e1, 1e1, 1e1],
+    "mask_level": 1e4
   },
   "optimizer_args": {
     "lr": 1e-3,
