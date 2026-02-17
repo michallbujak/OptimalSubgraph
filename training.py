@@ -3,7 +3,7 @@ import torch
 from model import OptimalSubgraphGNN
 from loss_func import RailCostBenefitLoss
 
-def training(
+def train(
         model: OptimalSubgraphGNN,
         adjacency_matrix: torch.Tensor,
         distances: torch.Tensor,
@@ -14,7 +14,7 @@ def training(
     num_epochs = parameters['num_epochs']
     model.train()
 
-    loss_calculator = RailCostBenefitLoss(*parameters.get('loss_args', {}))
+    loss_calculator = RailCostBenefitLoss(**parameters.get('loss_args', {}))
 
     if optimizer is None:
         optimizer = torch.optim.Adam(
@@ -25,11 +25,11 @@ def training(
     x = adjacency_matrix
 
     for epoch in range(num_epochs):
-        soft_adj = model(x, adjacency_matrix, parameters.get('final_activation', 'sigmoid'))
+        soft_adj = model(x, adjacency_matrix)
         loss = loss_calculator(soft_adj, distances, demand_potential)
 
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
     return None

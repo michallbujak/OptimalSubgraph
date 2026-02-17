@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from torch_geometric.nn import GCNConv, Sequential as GeoSequential
+from torch_geometric.nn import GCNConv, Sequential
 from torch_geometric.utils import dense_to_sparse
 
 class OptimalSubgraphGNN(nn.Module):
@@ -11,11 +11,12 @@ class OptimalSubgraphGNN(nn.Module):
                  mp_units: tuple=(64,64,48),
                  mp_activation: str='ReLU',
                  mlp_units: tuple=(32, 16),
-                 mlp_activation: str='ReLU'):
+                 mlp_activation: str='ReLU',
+                 final_activation: str='Sigmoid'):
         super().__init__()
 
-        mp_activation = getattr(nn, mp_activation)
-        mlp_activation = getattr(nn, mlp_activation)
+        mp_act_class = getattr(nn, mp_activation)
+        mlp_act_class = getattr(nn, mlp_activation)
 
         # Message passing (nodes)
         if len(mp_units) > 0:
@@ -25,10 +26,10 @@ class OptimalSubgraphGNN(nn.Module):
             for mp_unit in mp_units:
                 gcn = GCNConv(prev, mp_unit, normalize=False)
                 mp_architecture.append((gcn, header))
-                mp_architecture.append(mp_activation)
+                mp_architecture.append(mp_act_class())
                 prev = mp_unit
 
-            self.mp_architecture = GeoSequential(header, mp_architecture)
+            self.mp_architecture = Sequential("x, edge_index, edge_weight", mp_architecture)
             self.embedding_dim = mp_units[-1]
         else:
             self.mp_architecture = nn.Identity()
@@ -46,14 +47,15 @@ class OptimalSubgraphGNN(nn.Module):
         self.edge_mlp_architecture = nn.Sequential()
         for mlp_unit in mlp_units:
             self.edge_mlp_architecture.append(nn.Linear(mlp_in_channels, mlp_unit))
-            self.edge_mlp_architecture.append(mlp_activation(inplace=True))
+            self.edge_mlp_architecture.append(mlp_act_class(inplace=True))
             mlp_in_channels = mlp_unit
         self.edge_mlp_architecture.append(nn.Linear(mlp_in_channels, 1))
 
+        self.final_activation = getattr(nn, final_activation)()
+
     def forward(self,
                 x: torch.Tensor,
-                original_adj: torch.Tensor,
-                final_activation: str='sigmoid'):
+                original_adj: torch.Tensor):
         # Use learnable adjacency matrix or original
         if self.adapt_adj is not None:
             edge_index, edge_weight = dense_to_sparse(torch.relu(self.adapt_adj))
@@ -71,9 +73,8 @@ class OptimalSubgraphGNN(nn.Module):
         pair_input = torch.cat([h_i, h_j, edge_feat], dim=-1)  # (N, N, 2*emb + 1)
 
         # Third, apply mlp part
-        activation = getattr(nn, final_activation)
         s = self.edge_mlp_architecture(pair_input).squeeze(-1)
-        o = activation(s)
+        o = self.final_activation(s)
 
         # Finally, enforce symmetry and remove self-loops
         o = (o + o.T) / 2.0

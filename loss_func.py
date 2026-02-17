@@ -35,8 +35,7 @@ class RailCostBenefitLoss(nn.Module):
             _soft_adj: torch.Tensor,
             _distances: torch.Tensor,
             _delta: float,
-            _gamma: float,
-            _max_distance: float,
+            _gamma: float
     ) -> torch.Tensor:
         """
         Floyd-Warshall for shortest paths.
@@ -82,7 +81,7 @@ class RailCostBenefitLoss(nn.Module):
         loss_cost = torch.sum(torch.mul(soft_adj,distances))
 
         # Calculate the shortest paths
-        shortest_paths = self._shortest_path(soft_adj, distances, delta=self.delta, gamma=self.gamma)
+        shortest_paths = self._shortest_path(soft_adj, distances, _delta=self.delta, _gamma=self.gamma)
 
         # Choice probability matrix
         exp_ut_rail = torch.exp(self.utility_scale * shortest_paths * self.priority_rail)

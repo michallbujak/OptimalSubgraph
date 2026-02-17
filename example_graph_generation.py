@@ -3,6 +3,7 @@ import torch
 def generate_sample_graph(
         no_nodes: int = 16,
         edge_prob: float = 0.3,
+        connected: bool | int = True,
         **kwargs
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -10,12 +11,9 @@ def generate_sample_graph(
     :param no_nodes: number of nodes in the graph
     :param edge_prob: probability of each edge
     :param kwargs: set nodes and edges parameters and seed
+    :param connected: indicates whether the graph should be connected
     :return: weighted adjacency matrix, distance matrix, and demand potential
     """
-
-    if kwargs.get("seed", None) is not None:
-        torch.manual_seed(seed=kwargs.get("seed"))
-
     node_mean_weight = kwargs.get("node_base_weight", 200000)
     node_std_weight = kwargs.get("node_std_weight", 50000)
     edge_mean_weight = kwargs.get("edge_base_weight", 100)
@@ -27,8 +25,8 @@ def generate_sample_graph(
     demand_potential_distro = torch.distributions.Normal(1, demand_potential_std)
 
     # construct adjacency matrix
-    connected = False
-    while not connected:
+    is_connected = False
+    while not is_connected:
         base_distances = torch.abs(edge_distro.sample((no_nodes, no_nodes)))
         mask = ((torch.rand(no_nodes, no_nodes) < edge_prob).int()
                 & (torch.triu(torch.ones((no_nodes, no_nodes)), diagonal=1) == 1))
@@ -39,10 +37,10 @@ def generate_sample_graph(
         base_distances = base_distances + base_distances.T
         adj_matrix = (base_distances > 0).int()
 
-        if kwargs.get("connected", True):
-            connected = check_if_connected(adj_matrix)
+        if connected:
+            is_connected = check_if_connected(adj_matrix)
         else:
-            connected = True
+            is_connected = True
 
     distances = shortest_path_exact(base_distances)
 
@@ -53,7 +51,7 @@ def generate_sample_graph(
     demand_potential = randomisers * node_features/torch.mul(distances, distances)
     demand_potential.fill_diagonal_(0)
 
-    return adj_matrix, distances, demand_potential
+    return adj_matrix.float(), distances, demand_potential
 
 
 
@@ -63,6 +61,8 @@ def shortest_path_exact(
 ) -> torch.Tensor:
     dist = adjacency_matrix.clone()
     dist[dist == 0] = infty
+    dist.diagonal().fill_(0)
+
     n = dist.size(0)
 
     for k in range(n):
@@ -86,7 +86,3 @@ def check_if_connected(
     iter_foo(0)
 
     return all(visited)
-
-
-a, b, c = generate_sample_graph()
-x = 0
