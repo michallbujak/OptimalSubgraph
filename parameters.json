@@ -1,9 +1,9 @@
 {
-  "num_epochs": 100,
+  "num_epochs": 1000,
   "random_graph": {
     "no_nodes": 16,
     "edge_prob": 0.3,
-    "connected": 1
+    "connected": true
   },
   "model_args": {
     "mp_units": [64,64,48],
@@ -24,5 +24,9 @@
     "weight_decay": 1e-5
   },
   "final_activation": "Sigmoid",
-  "seed": 123
+  "seed": 123,
+  "visualization": {
+    "show_training_progress": true,
+    "show_training_output": true
+  }
 }
