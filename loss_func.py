@@ -13,7 +13,7 @@ class RailCostBenefitLoss(nn.Module):
                  utility_scale: float = -1e-2,
                  priority_rail: float = 0.5,
                  loss_component_balance: float = 1.0,
-                 utility_smoother: float = 1e-3,
+                 alpha_elu: float = 1.0,
                  entropy_thresholds: list | None = None,
                  entropy_levels: list | None = None,
                  mask_level: float = 1e4
@@ -28,7 +28,7 @@ class RailCostBenefitLoss(nn.Module):
         :param utility_scale: to scale utilities (e^{ax}/(e^{ax}+e^{ay}) is sensitive to a
         :param priority_rail: scaling of the distance with the new service (e.g. greater speed)
         :param loss_component_balance: balance between cost and utility gain
-        :param utility_smoother: lower values for the exponent function
+        :param alpha_elu: lower values for the exponent function
         :param entropy_thresholds: thresholds for increasing penalties with entropy
         :param entropy_levels: penalty levels with entropy (following thresholds)
         :param mask_level: penalty level for assigning links that do not exist in the original graph
@@ -39,7 +39,8 @@ class RailCostBenefitLoss(nn.Module):
         self.utility_scale = utility_scale
         self.priority_rail = priority_rail
         self.loss_component_balance = loss_component_balance
-        self.utility_smoother = utility_smoother
+        self.alpha_elu = alpha_elu
+        self.elu = nn.ELU(self.alpha_elu)
 
         if entropy_thresholds is None:
             self.entropy_thresholds = [0]
@@ -113,13 +114,12 @@ class RailCostBenefitLoss(nn.Module):
         # Choice probability matrix
         exp_ut_rail = torch.exp(self.utility_scale * shortest_paths * self.priority_rail)
         exp_ut_base = torch.exp(self.utility_scale * distances)
-
         choice_matrix = exp_ut_rail / (exp_ut_rail + exp_ut_base)
 
         # Second loss
         distance_saved = distances - self.priority_rail * shortest_paths
         utility_gain = flow * choice_matrix * distance_saved
-        utility_gain = torch.exp(self.utility_smoother * utility_gain)
+        utility_gain = self.elu(utility_gain) + self.alpha_elu
 
         # Third loss
         inverse_soft = torch.eye(soft_adj.size(0), device=soft_adj.device) - soft_adj
