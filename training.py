@@ -12,7 +12,7 @@ def train(
         loss_calculator: RailCostBenefitLoss,
         parameters: dict,
         optimizer: torch.optim.Optimizer | None = None
-) -> None:
+) -> np.ndarray:
     num_epochs = parameters['num_epochs']
     model.train()
 
@@ -52,4 +52,4 @@ def train(
         np.save('results/loss_progress.npy', loss_progress)
 
 
-    return None
+    return soft_adj.cpu().detach().numpy()

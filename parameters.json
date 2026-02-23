@@ -37,6 +37,7 @@
   "seed": 123,
   "visualization": {
     "show_training_progress": true,
-    "show_training_output": true
+    "show_training_output": true,
+    "save_training_output": true
   }
 }

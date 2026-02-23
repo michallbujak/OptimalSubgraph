@@ -1,9 +1,11 @@
 from bisect import bisect_left as bisect
 
-import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
+import numpy as np
+
+from utils import shortest_path_exact
 
 
 class RailCostBenefitLoss(nn.Module):
@@ -136,7 +138,45 @@ class RailCostBenefitLoss(nn.Module):
                 self.mask_level * mask_loss
         )
 
+    def exact_loss(self,
+                   soft_adj: torch.Tensor | np.ndarray,
+                   original_adj: torch.Tensor,
+                   distances: torch.Tensor,
+                   flow: torch.Tensor) -> dict:
+        if type(soft_adj) is np.ndarray:
+            soft_adj = torch.from_numpy(soft_adj)
+            soft_adj = soft_adj.to(device=original_adj.device)
+        # Convert to hard adjacency matrix
+        adj_matrix_hard = soft_adj.round()
 
+        # L1: Building cost
+        loss_cost = torch.sum(torch.mul(adj_matrix_hard, distances))
+
+        # Shortest paths
+        shortest_paths = torch.mul(adj_matrix_hard, distances)
+        shortest_paths = shortest_path_exact(shortest_paths)
+
+        # Choice probability matrix
+        exp_ut_rail = torch.exp(self.utility_scale * shortest_paths * self.priority_rail)
+        exp_ut_base = torch.exp(self.utility_scale * distances)
+        choice_matrix = exp_ut_rail / (exp_ut_rail + exp_ut_base)
+
+        # L2: final calculations of the utility
+        distance_saved = distances - self.priority_rail * shortest_paths
+        utility_gain = flow * choice_matrix * distance_saved
+        utility_gain = self.elu(utility_gain) + self.alpha_elu
+        loss_utility = self.loss_component_balance * utility_gain.sum()
+
+        # Illegal edges
+        illegal_edges = adj_matrix_hard - original_adj
+        illegal_edges = illegal_edges.cpu().apply_(lambda x: x if x == 1 else 0)
+
+        return {
+            "cost": loss_cost,
+            "utility_gain": loss_utility,
+            "total_loss": loss_cost + loss_utility,
+            "illegal_edges": illegal_edges.sum()/2
+        }
 
 
 
