@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from model import OptimalSubgraphGNN
@@ -21,7 +22,7 @@ def train(
             **parameters.get('optimizer_args', {})
         )
 
-    loss_progress = []
+    loss_progress = np.array([])
 
     # x = torch.eye(adjacency_matrix.size(0)).to(adjacency_matrix.device)
     x = adjacency_matrix.clone()
@@ -34,7 +35,7 @@ def train(
         loss.backward()
         optimizer.step()
 
-        loss_progress.append(loss.item())
+        loss_progress = np.append(loss_progress, loss.item())
 
         if (epoch % 50 == 0) & (parameters.get("show_training_progress", False)):
             print(f'Epoch {epoch}, Loss: {loss_progress[-1]}')
@@ -47,6 +48,8 @@ def train(
 
         plt.plot(loss_progress)
         plt.savefig('results/loss_progress.png')
+
+        np.save('results/loss_progress.npy', loss_progress)
 
 
     return None
