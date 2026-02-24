@@ -38,6 +38,9 @@
   "visualization": {
     "show_training_progress": true,
     "show_training_output": true,
-    "save_training_output": true
+    "save_training_output": true,
+    "label_coordinates_path": "data/coord_poland.csv",
+    "figure_size": [10, 10],
+    "dpi": 300
   }
 }

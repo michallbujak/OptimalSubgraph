@@ -172,10 +172,10 @@ class RailCostBenefitLoss(nn.Module):
         illegal_edges = illegal_edges.cpu().apply_(lambda x: x if x == 1 else 0)
 
         return {
-            "cost": loss_cost,
-            "utility_gain": loss_utility,
-            "total_loss": loss_cost + loss_utility,
-            "illegal_edges": illegal_edges.sum()/2
+            "cost": loss_cost.item(),
+            "utility_gain": loss_utility.item(),
+            "total_loss": (loss_cost + loss_utility).item(),
+            "illegal_edges": (illegal_edges.sum()/2).item()
         }
 
 

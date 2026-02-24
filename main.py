@@ -63,6 +63,7 @@ evaluate(
     distances=distances,
     loss_calculator=loss_calculator,
     flow=flow,
+    **params['visualization']
 )
 
 
