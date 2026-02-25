@@ -41,8 +41,12 @@ def train(
             print(f'Epoch {epoch}, Loss: {loss_progress[-1]}')
 
     if parameters.get("show_training_output", True):
+        import os
         import matplotlib.pyplot as plt
         import pandas as pd
+
+        if not os.path.exists('results'):
+            os.makedirs('results')
 
         pd.DataFrame(soft_adj.cpu().detach().numpy()).to_csv('results/training_output.csv')
 

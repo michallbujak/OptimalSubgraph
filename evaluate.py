@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -51,6 +52,10 @@ def evaluate(
     ax.axes.get_yaxis().set_visible(False)
 
     plt.tight_layout()
+
+    if not os.path.exists('results'):
+        os.makedirs('results')
+
     plt.savefig('results/output.png', dpi=kwargs.get('dpi', 300))
 
     return None
