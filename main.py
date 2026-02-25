@@ -5,7 +5,7 @@ import argparse
 from utils import generate_sample_graph, load_data
 from model import OptimalSubgraphGNN
 from training import train
-from loss_func import RailCostBenefitLoss
+from loss_func import UtilityInfrastructureBalancer
 from evaluate import evaluate
 
 parser = argparse.ArgumentParser()
@@ -43,7 +43,7 @@ optimizer = torch.optim.Adam(
 )
 
 # Loss calculator
-loss_calculator = RailCostBenefitLoss(**params.get('loss_args', {}))
+loss_calculator = UtilityInfrastructureBalancer(**params.get('loss_args', {}))
 
 # Train
 soft_adj = train(

@@ -2,14 +2,14 @@ import numpy as np
 import torch
 
 from model import OptimalSubgraphGNN
-from loss_func import RailCostBenefitLoss
+from loss_func import UtilityInfrastructureBalancer
 
 def train(
         model: OptimalSubgraphGNN,
         adjacency_matrix: torch.Tensor,
         distances: torch.Tensor,
         flow: torch.Tensor,
-        loss_calculator: RailCostBenefitLoss,
+        loss_calculator: UtilityInfrastructureBalancer,
         parameters: dict,
         optimizer: torch.optim.Optimizer | None = None
 ) -> np.ndarray:

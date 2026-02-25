@@ -8,7 +8,7 @@ import numpy as np
 from utils import shortest_path_exact
 
 
-class RailCostBenefitLoss(nn.Module):
+class UtilityInfrastructureBalancer(nn.Module):
     def __init__(self,
                  delta: float=1e-4,
                  gamma: float=1e-1,
@@ -35,7 +35,7 @@ class RailCostBenefitLoss(nn.Module):
         :param entropy_levels: penalty levels with entropy (following thresholds)
         :param mask_level: penalty level for assigning links that do not exist in the original graph
         """
-        super(RailCostBenefitLoss, self).__init__()
+        super(UtilityInfrastructureBalancer, self).__init__()
         self.delta = delta
         self.gamma = gamma
         self.utility_scale = utility_scale
@@ -172,10 +172,10 @@ class RailCostBenefitLoss(nn.Module):
         illegal_edges = illegal_edges.cpu().apply_(lambda x: x if x == 1 else 0)
 
         return {
-            "cost": loss_cost.item(),
-            "utility_gain": loss_utility.item(),
-            "total_loss": (loss_cost + loss_utility).item(),
-            "illegal_edges": (illegal_edges.sum()/2).item()
+            "Building_cost": loss_cost.item(),
+            "Utility_increase": loss_utility.item(),
+            "Total_loss": (loss_cost + loss_utility).item(),
+            "Illegal_edges": (illegal_edges.sum()/2).item()
         }
 
 

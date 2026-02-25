@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np
 
-from loss_func import RailCostBenefitLoss
+from loss_func import UtilityInfrastructureBalancer
 
 
 def evaluate(
@@ -13,7 +13,7 @@ def evaluate(
         adjacency_matrix: torch.Tensor,
         distances: torch.Tensor,
         flow: torch.Tensor,
-        loss_calculator: RailCostBenefitLoss,
+        loss_calculator: UtilityInfrastructureBalancer,
         label_coordinates_path: str | Path,
         **kwargs
 ) -> None:
