@@ -47,5 +47,8 @@ To navigate to your custom file (particularly, when experimenting with various p
 `python3 main.py --config <path_to_your_config>`.
 By default, it uses `parameters.json` file.
 
+# Methodology
+Detailed methodology, including description of invididual components, is stored in the folder **Documentation**.
+
 
 
