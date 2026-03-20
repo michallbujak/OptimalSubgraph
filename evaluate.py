@@ -31,9 +31,19 @@ def evaluate(
                 ax.plot(
                     (labels_coordinates[i]['y_coord'], labels_coordinates[j]['y_coord']),
                     (labels_coordinates[i]['x_coord'], labels_coordinates[j]['x_coord']),
-                    color=kwargs.get('line_color', 'gray'),
+                    color=kwargs.get('base_line_color', 'gray'),
                     ls=kwargs.get('ls', '-'),
-                    lw=kwargs.get('lw', 1.5),
+                    lw=kwargs.get('lw', 5),
+                    alpha=kwargs.get('alpha', 0.3),
+                    zorder=kwargs.get('zorder', 1),
+                )
+            if soft_adj[i, j] > 0.5:
+                ax.plot(
+                    (labels_coordinates[i]['y_coord'], labels_coordinates[j]['y_coord']),
+                    (labels_coordinates[i]['x_coord'], labels_coordinates[j]['x_coord']),
+                    color=kwargs.get('model_line_color', 'red'),
+                    ls=kwargs.get('ls', '-'),
+                    lw=kwargs.get('lw', 1),
                     alpha=kwargs.get('alpha', 0.7),
                     zorder=kwargs.get('zorder', 1),
                 )

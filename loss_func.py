@@ -171,11 +171,15 @@ class UtilityInfrastructureBalancer(nn.Module):
         illegal_edges = adj_matrix_hard - original_adj
         illegal_edges = illegal_edges.cpu().apply_(lambda x: x if x == 1 else 0)
 
+        # Cover fraction
+        cover_fraction = adj_matrix_hard.sum()/original_adj.sum()
+
         return {
             "Building_cost": loss_cost.item(),
             "Utility_increase": loss_utility.item(),
             "Total_loss": (loss_cost + loss_utility).item(),
-            "Illegal_edges": (illegal_edges.sum()/2).item()
+            "Illegal_edges": (illegal_edges.sum()/2).item(),
+            "Cover_fraction": round(cover_fraction.item(), 4)
         }
 
 

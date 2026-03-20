@@ -2,7 +2,7 @@
   "num_epochs": 1000,
   "input": {
     "exact_data": true,
-    "adjacency_matrix_path": "data/adj_poland.csv",
+    "adjacency_matrix_path": "data/adj_poland2.csv",
     "distances_matrix_path": "data/dist_poland.csv",
     "flow_matrix_path": "data/flow_poland.csv"
   },
