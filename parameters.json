@@ -32,9 +32,6 @@
     "lr": 1e-3,
     "weight_decay": 1e-5
   },
-  "num_epochs": 1000,
-  "final_activation": "Sigmoid",
-  "seed": 123,
   "visualization": {
     "show_training_progress": true,
     "show_training_output": true,
@@ -42,5 +39,8 @@
     "label_coordinates_path": "data/coord_poland.csv",
     "figure_size": [10, 10],
     "dpi": 300
-  }
+  },
+  "num_epochs": 1000,
+  "final_activation": "Sigmoid",
+  "seed": 123
 }
