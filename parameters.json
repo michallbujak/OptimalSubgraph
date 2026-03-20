@@ -41,6 +41,5 @@
     "dpi": 300
   },
   "num_epochs": 1000,
-  "final_activation": "Sigmoid",
   "seed": 123
 }

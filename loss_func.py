@@ -100,7 +100,7 @@ class UtilityInfrastructureBalancer(nn.Module):
                 epoch: float) -> Tensor:
         """
         Function to calculate all components of the loss
-        :param soft_adj: soft adjacency matrix (optimization argument)
+        :param soft_adj: soft adjacency matrix (optimisation argument)
         :param original_adj: original adjacency matrix
         :param distances: distance matrix
         :param flow: demand potential matrix (travellers between cities)
