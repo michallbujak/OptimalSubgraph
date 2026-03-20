@@ -1,5 +1,4 @@
 {
-  "num_epochs": 1000,
   "input": {
     "exact_data": true,
     "adjacency_matrix_path": "data/adj_poland.csv",
@@ -33,6 +32,7 @@
     "lr": 1e-3,
     "weight_decay": 1e-5
   },
+  "num_epochs": 1000,
   "final_activation": "Sigmoid",
   "seed": 123,
   "visualization": {
