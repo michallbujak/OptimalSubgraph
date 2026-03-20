@@ -36,4 +36,33 @@ Section under `loss_args`. The atterisk * denotes parameters vital for the model
 | * utility_scale   | When calculating utility of the base method (a.k.a.), and new (rail) method (b.k.), the model derives probability that a fraction of demand (flow) chooses new method following the utility |
 | * priority_rail   | Utility for base mode is computed as distance multiplied by the `utility_scale` and for rail is computed as product of shortest distance (via new network), `utility_scale` and priority factor. E.g. `priority_rail = 0.5` implies that distance with rail of 2 is perceived as distance with base method of 1.|
 | * loss_component_balance | Multiplier for _utility gain_. **Note:** Needs to be negative for proper minimisation formulation |
-| alpha_elu | Distance reduction following introduction of the rail (including `priority_rail`) is moved to be non-negative. To avoid hard cut at 0 of ReLU method, the model applies elu with parametr `alpha_elu` and adds `alpha_elu` |
+| alpha_elu | Distance reduction following introduction of the rail (including `priority_rail`) is moved to be non-negative. To avoid hard cut at 0 of ReLU method, the model applies elu with parametr `alpha_elu` and adds `alpha_elu` | 
+| entropy_thresholds | Thresholds at which new levels of entropy loss are introduced. It helps to increasingly push values to 0 or 1 |
+| entropy_levels | Levels of entropy loss at respective thresholds |
+| mask_level | Multiplier for penalty for each edge which is not allowed according to the _adjacency matrix_ |
+
+## Optimiser arguments
+Section under `optimizer_args`
+| Name | Description |
+| ---- | ------------- |
+| lr | Learning rate |
+| weight_decay | Weight decay for the Adam optimiser |
+
+## Visualisation
+Section under `visualization`
+| Name | Description |
+| ---- | ------------- |
+| show_training_progress | Indicate whether to show learning progress each 50 epochs |
+| show_training_output | At the end of training, show the output |
+| save_training_output | Save the training output |
+| label_coordinates_path | To plot the map when using actual geospatial data, provide dataframe with node features triples: name, x coord., y coord. |
+| dpi | Pixel density for saved plots |
+
+## Miscellaneous
+Remaining parameters
+| Name | Description |
+| ---- | ------------- |
+| num_epochs | Number of training epochs |
+| seed | Seed for reproducibility | 
+
+
