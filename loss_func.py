@@ -120,8 +120,10 @@ class UtilityInfrastructureBalancer(nn.Module):
 
         # Second loss
         distance_saved = distances - self.priority_rail * shortest_paths
+        distance_saved = self.elu(distance_saved)
+        distance_saved = distance_saved * (1 - torch.eye(distance_saved.shape[0], device=distance_saved.device))
         utility_gain = flow * choice_matrix * distance_saved
-        utility_gain = self.elu(utility_gain) + self.alpha_elu
+        utility_gain = utility_gain + self.alpha_elu
 
         # Third loss
         inverse_soft = torch.eye(soft_adj.size(0), device=soft_adj.device) - soft_adj
