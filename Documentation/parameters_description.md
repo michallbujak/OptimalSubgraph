@@ -35,3 +35,5 @@ Section under `loss_args`. The atterisk * denotes parameters vital for the model
 | gamma           | Smoothing parameter used in the shortest path algorithm to introduce differentiability                                                                          |
 | * utility_scale   | When calculating utility of the base method (a.k.a.), and new (rail) method (b.k.), the model derives probability that a fraction of demand (flow) chooses new method following the utility |
 | * priority_rail   | Utility for base mode is computed as distance multiplied by the `utility_scale` and for rail is computed as product of shortest distance (via new network), `utility_scale` and priority factor. E.g. `priority_rail = 0.5` implies that distance with rail of 2 is perceived as distance with base method of 1.|
+| * loss_component_balance | Multiplier for _utility gain_. **Note:** Needs to be negative for proper minimisation formulation |
+| alpha_elu | Distance reduction following introduction of the rail (including `priority_rail`) is moved to be non-negative. To avoid hard cut at 0 of ReLU method, the model applies elu with parametr `alpha_elu` and adds `alpha_elu` |
