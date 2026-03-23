@@ -38,7 +38,7 @@ Loss either difference between benefits and costs (not classicla, but easier for
 
 
 ## TL;DR Script Launch
-1) create virtual environment with requiremenets.txt.
+1) create virtual environment with requirements.txt.
 2) `python3 main.py`.
 
 ## Input manipulation
