@@ -18,13 +18,14 @@ Section described under `input`
 ## Model arguments
 Section described under `model_args`
 
-| Name              | Description                                                                                 |
-|-------------------|---------------------------------------------------------------------------------------------|
-| mp_units          | Message passing numbers of neurons in consecutive layers of GCNN part                       |
-| mp_activation     | Activation function at the end of each GCNN layer                                           |
-| mlp_units         | Multilayered perceptron numbers of neurons in each layer                                   |
-| mlp_activation    | Activation function for each MLP layer → new soft adjacency matrix                         |
-| final_activation  | Final activation when calculating model output – new soft adjacency matrix                 |
+| Name              | Description                                                                               |
+|-------------------|-------------------------------------------------------------------------------------------|
+| mp_units          | Message passing numbers of neurons in consecutive layers of GCNN part                     |
+| mp_activation     | Activation function at the end of each GCNN layer                                         |
+| mlp_units         | Multilayered perceptron numbers of neurons in each layer                                  |
+| mlp_activation    | Activation function for each MLP layer → new soft adjacency matrix                        |
+| final_activation  | Final activation when calculating model output – new soft adjacency matrix                |
+| prior_logit_shift | Initial logits can be shifted for benefitting close to the original adjacency matrix (>0) |
 
 ## Loss calculation arguments
 Section under `loss_args`. The asterisk * denotes parameters vital for the model.
