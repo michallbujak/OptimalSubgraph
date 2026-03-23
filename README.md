@@ -34,7 +34,7 @@ Loss either difference between benefits and costs (not classicla, but easier for
 ### Remarks, issues:
 
 * in the solution $G'$ shall to be a subset of a complete graph $G$, but in the meantime the continous variable $0 \leq a_{ij} \leq 1$ is accepted.
-* we need gradient $dL\dG$
+* we need gradient $dL/dG$
 
 
 ## TL;DR Script Launch
@@ -48,7 +48,7 @@ To navigate to your custom file (particularly, when experimenting with various p
 By default, it uses `parameters.json` file.
 
 # Methodology
-Detailed methodology, including description of invididual components, is stored in the folder **Documentation**.
+Detailed methodology, including description of invididual components, is stored in the folder **docs**.
 
 
 
