@@ -18,7 +18,8 @@ class UtilityInfrastructureBalancer(nn.Module):
                  alpha_elu: float = 1.0,
                  entropy_thresholds: list | None = None,
                  entropy_levels: list | None = None,
-                 mask_level: float = 1e4
+                 mask_thresholds: list | None = None,
+                 mask_levels: list | None = None,
                  ):
         """
         Loss function
@@ -33,7 +34,8 @@ class UtilityInfrastructureBalancer(nn.Module):
         :param alpha_elu: lower values for the exponent function
         :param entropy_thresholds: thresholds for increasing penalties with entropy
         :param entropy_levels: penalty levels with entropy (following thresholds)
-        :param mask_level: penalty level for assigning links that do not exist in the original graph
+        :param mask_thresholds: thresholds for increasing penalties with mask
+        :param mask_levels: penalty levels for assigning links that do not exist in the original graph (following thresholds)
         """
         super(UtilityInfrastructureBalancer, self).__init__()
         self.delta = delta
@@ -44,16 +46,19 @@ class UtilityInfrastructureBalancer(nn.Module):
         self.alpha_elu = alpha_elu
         self.elu = nn.ELU(self.alpha_elu)
 
-        if entropy_thresholds is None:
+        if entropy_thresholds is None or entropy_levels is None:
             self.entropy_thresholds = [0]
-        else:
-            self.entropy_thresholds = entropy_thresholds
-        if entropy_levels is None:
             self.entropy_levels = [0]
         else:
+            self.entropy_thresholds = entropy_thresholds
             self.entropy_levels = entropy_levels
 
-        self.mask_level = mask_level
+        if mask_levels is None or mask_thresholds is None:
+            self.mask_levels = [0]
+            self.mask_thresholds = [0]
+        else:
+            self.mask_levels = mask_levels
+            self.mask_thresholds = mask_thresholds
 
     @staticmethod
     @torch.jit.script
@@ -97,7 +102,7 @@ class UtilityInfrastructureBalancer(nn.Module):
                 original_adj: torch.Tensor,
                 distances: torch.Tensor,
                 flow: torch.Tensor,
-                epoch: float) -> Tensor:
+                epoch: int) -> Tensor:
         """
         Function to calculate all components of the loss
         :param soft_adj: soft adjacency matrix (optimisation argument)
@@ -131,12 +136,13 @@ class UtilityInfrastructureBalancer(nn.Module):
 
         # Fourth loss
         mask_loss = (soft_adj * (1 - original_adj)).sum()
+        mask_scale = self.mask_levels[bisect(self.mask_thresholds, epoch)]
 
         return (
                 loss_cost +
                 self.utility_gain_multiplier * utility_gain.sum() +
                 entropy_loss * entropy_scale +
-                self.mask_level * mask_loss
+                mask_scale * mask_loss
         )
 
     def exact_loss(self,

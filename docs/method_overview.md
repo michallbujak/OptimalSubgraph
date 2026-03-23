@@ -57,7 +57,7 @@ Calculate entropy loss (`soft_adj * (1 - soft_adj`).
 Depending on epoch, there are different multipliers for the entropy loss, based on parameters `entropy_thresholds` and `entropy_levels`.
 
 ### Loss 4: Mask
-Sum all not feasible edges (all enteries of `soft_adj` where the original adjacency matrix has $0$s). Loss is multiplied by `mask_level` parameter.
+Sum all not feasible edges (all enteries of `soft_adj` where the original adjacency matrix has $0$s). Loss depends on `mask_thresholds` and `mask_levels`
 
 
 
