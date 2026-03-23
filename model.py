@@ -12,7 +12,8 @@ class OptimalSubgraphGNN(nn.Module):
                  mp_activation: str='ReLU',
                  mlp_units: tuple=(32, 16),
                  mlp_activation: str='ReLU',
-                 final_activation: str='Sigmoid'):
+                 final_activation: str='Sigmoid',
+                 prior_logit_shift: float=3.):
         super().__init__()
 
         mp_act_class = getattr(nn, mp_activation)
@@ -56,6 +57,7 @@ class OptimalSubgraphGNN(nn.Module):
         # nn.init.constant_(final_linear_layer.bias, 3.0)
         # nn.init.xavier_uniform_(final_linear_layer.weight, gain=0.01)
         self.final_activation = getattr(nn, final_activation)()
+        self.prior_logit_shift = prior_logit_shift
 
     def forward(self,
                 x: torch.Tensor,
@@ -80,7 +82,7 @@ class OptimalSubgraphGNN(nn.Module):
         s = self.edge_mlp_architecture(pair_input).squeeze(-1)
 
         # Fourth, stay close to the original adj matrix
-        prior_logits = (original_adj * 2.0 - 1.0) * 3
+        prior_logits = (original_adj * 2.0 - 1.0) * self.prior_logit_shift
         s = s + prior_logits
 
         o = self.final_activation(s)

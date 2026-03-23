@@ -14,7 +14,7 @@ class UtilityInfrastructureBalancer(nn.Module):
                  gamma: float=1e-1,
                  utility_scale: float = -1e-2,
                  priority_rail: float = 0.5,
-                 loss_component_balance: float = 1.0,
+                 utility_gain_multiplier: float = 1.0,
                  alpha_elu: float = 1.0,
                  entropy_thresholds: list | None = None,
                  entropy_levels: list | None = None,
@@ -29,7 +29,7 @@ class UtilityInfrastructureBalancer(nn.Module):
                Larger values = smoother gradients.
         :param utility_scale: to scale utilities (e^{ax}/(e^{ax}+e^{ay}) is sensitive to a
         :param priority_rail: scaling of the distance with the new service (e.g. greater speed)
-        :param loss_component_balance: balance between cost and utility gain
+        :param utility_gain_multiplier: balance between cost and utility gain
         :param alpha_elu: lower values for the exponent function
         :param entropy_thresholds: thresholds for increasing penalties with entropy
         :param entropy_levels: penalty levels with entropy (following thresholds)
@@ -40,7 +40,7 @@ class UtilityInfrastructureBalancer(nn.Module):
         self.gamma = gamma
         self.utility_scale = utility_scale
         self.priority_rail = priority_rail
-        self.loss_component_balance = loss_component_balance
+        self.utility_gain_multiplier = utility_gain_multiplier
         self.alpha_elu = alpha_elu
         self.elu = nn.ELU(self.alpha_elu)
 
@@ -120,10 +120,9 @@ class UtilityInfrastructureBalancer(nn.Module):
 
         # Second loss
         distance_saved = distances - self.priority_rail * shortest_paths
-        distance_saved = self.elu(distance_saved)
+        distance_saved = self.elu(distance_saved) + self.alpha_elu
         distance_saved = distance_saved * (1 - torch.eye(distance_saved.shape[0], device=distance_saved.device))
         utility_gain = flow * choice_matrix * distance_saved
-        utility_gain = utility_gain + self.alpha_elu
 
         # Third loss
         inverse_soft = torch.eye(soft_adj.size(0), device=soft_adj.device) - soft_adj
@@ -135,7 +134,7 @@ class UtilityInfrastructureBalancer(nn.Module):
 
         return (
                 loss_cost +
-                self.loss_component_balance * utility_gain.sum() +
+                self.utility_gain_multiplier * utility_gain.sum() +
                 entropy_loss * entropy_scale +
                 self.mask_level * mask_loss
         )
@@ -165,9 +164,9 @@ class UtilityInfrastructureBalancer(nn.Module):
 
         # L2: final calculations of the utility
         distance_saved = distances - self.priority_rail * shortest_paths
+        distance_saved = self.elu(distance_saved) + self.alpha_elu
         utility_gain = flow * choice_matrix * distance_saved
-        utility_gain = self.elu(utility_gain) + self.alpha_elu
-        loss_utility = self.loss_component_balance * utility_gain.sum()
+        loss_utility = self.utility_gain_multiplier * utility_gain.sum()
 
         # Illegal edges
         illegal_edges = adj_matrix_hard - original_adj
