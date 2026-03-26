@@ -39,7 +39,7 @@ The loss is a direct sum of elements of the adjacency matrix
 1. Calculate weighted shortest paths `shortest_paths` (details on the implementation are in document _shortest_path_algorithm_).
    
 **Part 2:** `choice_matrix`:
-1. New mode utility matrix `exp_ut_rail` exponens as $\exp($`utility_scale`\*`shortest_paths`\*`utility_rail`$)$.
+1. New mode utility matrix `exp_ut_rail` exponens as $\exp($`utility_scale`\*`shortest_paths`\*`utility_rail`).
 2. Base utility matrix `exp_ut_base` as $\exp($`utility_scale`\*`distances`, where `distances` is predifined distance between nodes (**Note:** distance can be different (shorter) than the shortest paths on the adjacency matrix)
 3. Choice matrix as `choice_matrix = exp_ut_rail / (exp_ut_rail + exp_ut_base)`
 
