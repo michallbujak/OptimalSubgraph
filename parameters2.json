@@ -16,7 +16,10 @@
     "mlp_units": [32, 16],
     "mlp_activation": "ReLU",
     "final_activation": "Sigmoid",
-    "prior_logit_shift": 2
+    "prior_logit_shift": 2,
+    "final_activation_parameters": {
+      "tau": 1
+    }
   },
   "loss_args": {
     "delta": 1e-4,

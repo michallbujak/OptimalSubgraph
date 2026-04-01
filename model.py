@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from torch_geometric.nn import GCNConv, Sequential
 from torch_geometric.utils import dense_to_sparse
@@ -13,7 +14,8 @@ class OptimalSubgraphGNN(nn.Module):
                  mlp_units: tuple=(32, 16),
                  mlp_activation: str='ReLU',
                  final_activation: str='Sigmoid',
-                 prior_logit_shift: float=3.):
+                 prior_logit_shift: float=3.,
+                 **kwargs):
         super().__init__()
 
         mp_act_class = getattr(nn, mp_activation)
@@ -52,11 +54,16 @@ class OptimalSubgraphGNN(nn.Module):
             mlp_in_channels = mlp_unit
         self.edge_mlp_architecture.append(nn.Linear(mlp_in_channels, 1))
 
-        # # Force higher initial values to not get stuck at local optimum in 0
-        # final_linear_layer = self.edge_mlp_architecture[-1]
-        # nn.init.constant_(final_linear_layer.bias, 3.0)
-        # nn.init.xavier_uniform_(final_linear_layer.weight, gain=0.01)
-        self.final_activation = getattr(nn, final_activation)()
+        if final_activation == 'gumbel_softmax':
+            self.final_activation = GumbelSoftmax(**kwargs.get('final_activation_parameters', {}))
+        else:
+            self.final_activation = getattr(nn, final_activation)()
+
+        # Force higher initial values to not get stuck at local optimum in 0
+        final_linear_layer = self.edge_mlp_architecture[-1]
+        nn.init.constant_(final_linear_layer.bias, 3.0)
+        nn.init.xavier_uniform_(final_linear_layer.weight, gain=0.01)
+
         self.prior_logit_shift = prior_logit_shift
 
     def forward(self,
@@ -94,7 +101,16 @@ class OptimalSubgraphGNN(nn.Module):
         return o
 
 
+class GumbelSoftmax(nn.Module):
+    """Gumbel softmax as nn.module"""
+    def __init__(self, tau=1.0, hard=False, dim=-1):
+        super().__init__()
+        self.tau = tau
+        self.hard = hard
+        self.dim = dim
 
+    def forward(self, x):
+        return F.gumbel_softmax(x, tau=self.tau, hard=self.hard, dim=self.dim)
 
 
 

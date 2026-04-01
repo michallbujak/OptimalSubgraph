@@ -24,8 +24,8 @@ def train(
 
     loss_progress = np.array([])
 
-    # x = torch.eye(adjacency_matrix.size(0)).to(adjacency_matrix.device)
-    x = adjacency_matrix.clone()
+    x = torch.eye(adjacency_matrix.size(0)).to(adjacency_matrix.device)
+    # x = adjacency_matrix.clone()
 
     for epoch in range(num_epochs):
         soft_adj = model(x, adjacency_matrix)
@@ -36,6 +36,9 @@ def train(
         optimizer.step()
 
         loss_progress = np.append(loss_progress, loss.item())
+
+        if epoch == 50:
+            ooo = 0
 
         if (epoch % 50 == 0) & (parameters.get("show_training_progress", False)):
             print(f'Epoch {epoch}, Loss: {loss_progress[-1]}')

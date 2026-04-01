@@ -15,8 +15,11 @@
     "mp_activation": "ReLU",
     "mlp_units": [32, 16],
     "mlp_activation": "ReLU",
-    "final_activation": "Sigmoid",
-    "prior_logit_shift": 3
+    "final_activation": "gumbel_softmax",
+    "prior_logit_shift": 3,
+    "final_activation_parameters": {
+      "tau": 1
+    }
   },
   "loss_args": {
     "delta": 1e-4,
@@ -26,9 +29,9 @@
     "utility_gain_multiplier": -1e-3,
     "alpha_elu": 1,
     "entropy_thresholds": [1e2, 3e2, 5e2, 8e2],
-    "entropy_levels": [1, 1e1, 1e1, 1e1, 1e1],
+    "entropy_levels": [1e0, 1e0, 1e0, 1e1, 1e1],
     "mask_thresholds": [1e2, 3e2, 5e2, 8e2],
-    "mask_levels": [1, 1e2, 1e3, 1e4, 1e4]
+    "mask_levels": [1, 1e1, 1e2, 1e3, 1e4]
   },
   "optimizer_args": {
     "lr": 1e-3,
