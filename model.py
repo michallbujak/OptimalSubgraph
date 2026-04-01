@@ -60,9 +60,11 @@ class OptimalSubgraphGNN(nn.Module):
             self.final_activation = getattr(nn, final_activation)()
 
         # Force higher initial values to not get stuck at local optimum in 0
-        final_linear_layer = self.edge_mlp_architecture[-1]
-        nn.init.constant_(final_linear_layer.bias, 3.0)
-        nn.init.xavier_uniform_(final_linear_layer.weight, gain=0.01)
+        if kwargs.get("force_initial_value", False):
+            final_linear_layer = self.edge_mlp_architecture[-1]
+            nn.init.constant_(final_linear_layer.bias, kwargs.get("initial_value", 3.0))
+            final_linear_layer.bias.data.fill_(0.0)
+            nn.init.xavier_uniform_(final_linear_layer.weight, gain=0.01)
 
         self.prior_logit_shift = prior_logit_shift
 
