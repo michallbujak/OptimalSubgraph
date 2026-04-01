@@ -28,12 +28,14 @@
     "gamma": 1e-1,
     "utility_scale": -1e-2,
     "priority_rail": 0.5,
-    "utility_gain_multiplier": -1e-2,
+    "utility_gain_multiplier": -1e-3,
     "alpha_elu": 1,
     "entropy_thresholds": [1e2, 3e2, 5e2, 8e2],
     "entropy_levels": [1e0, 1e0, 1e0, 1e1, 1e1],
     "mask_thresholds": [1e2, 3e2, 5e2, 8e2],
-    "mask_levels": [1, 1e1, 1e2, 1e3, 1e4]
+    "mask_levels": [1, 1e1, 1e2, 1e3, 1e4],
+    "lower_cost_training_power": 1,
+    "lower_cost_training_period": 800
   },
   "optimizer_args": {
     "lr": 1e-3,

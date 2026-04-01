@@ -20,6 +20,8 @@ class UtilityInfrastructureBalancer(nn.Module):
                  entropy_levels: list | None = None,
                  mask_thresholds: list | None = None,
                  mask_levels: list | None = None,
+                 lower_cost_training_power: float | None = None,
+                 lower_cost_training_period: int | None = None
                  ):
         """
         Loss function
@@ -36,6 +38,8 @@ class UtilityInfrastructureBalancer(nn.Module):
         :param entropy_levels: penalty levels with entropy (following thresholds)
         :param mask_thresholds: thresholds for increasing penalties with mask
         :param mask_levels: penalty levels for assigning links that do not exist in the original graph (following thresholds)
+        :param lower_cost_training_power: during training, scale building cost B as B/[((N-n)^+)^p], where p is the power (parameter) and N is lower_cost_period
+        :param lower_cost_training_period: scaling period for lower_cost_training_power
         """
         super(UtilityInfrastructureBalancer, self).__init__()
         self.delta = delta
@@ -59,6 +63,13 @@ class UtilityInfrastructureBalancer(nn.Module):
         else:
             self.mask_levels = mask_levels
             self.mask_thresholds = mask_thresholds
+
+        if lower_cost_training_power is None:
+            self.lower_cost_training = False
+        else:
+            self.lower_cost_training = True
+            self.lower_cost_training_power = lower_cost_training_power
+            self.lower_cost_training_period = lower_cost_training_period
 
     @staticmethod
     @torch.jit.script
@@ -115,6 +126,19 @@ class UtilityInfrastructureBalancer(nn.Module):
         # First loss, cost of the infrastructure
         loss_cost = torch.sum(torch.mul(soft_adj,distances))
 
+        # Add dynamic multiplier for the loss so it is not dominating in the learning period
+        if self.lower_cost_training:
+            loss_cost_multiplier = 1
+        else:
+            if epoch >= self.lower_cost_training_period:
+                loss_cost_multiplier = 1
+            else:
+                loss_cost_multiplier = self.lower_cost_training_period - epoch
+                loss_cost_multiplier = torch.pow(torch.Tensor([loss_cost_multiplier]),
+                                                 self.lower_cost_training_power).item()
+                loss_cost_multiplier = 1/loss_cost_multiplier
+
+
         # Calculate the shortest paths
         shortest_paths = self._shortest_path(soft_adj, distances, _delta=self.delta, _gamma=self.gamma)
 
@@ -139,7 +163,7 @@ class UtilityInfrastructureBalancer(nn.Module):
         mask_scale = self.mask_levels[bisect(self.mask_thresholds, epoch)]
 
         return (
-                loss_cost +
+                loss_cost_multiplier * loss_cost +
                 self.utility_gain_multiplier * utility_gain.sum() +
                 entropy_loss * entropy_scale +
                 mask_scale * mask_loss
