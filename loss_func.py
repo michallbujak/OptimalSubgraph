@@ -215,3 +215,140 @@ class UtilityInfrastructureBalancer(nn.Module):
 
 
 
+class UtilityBalancerSplitPaths(nn.Module):
+    def __init__(self,
+                 adjacency_matrix: torch.Tensor,
+                 distances: torch.Tensor,
+                 flow_matrix: torch.Tensor,
+                 utility_scale: float = -1e-2,
+                 priority_rail: float = 0.5,
+                 utility_gain_multiplier: float = 1.0,
+                 alpha_elu: float = 1.0,
+                 entropy_thresholds: list | None = None,
+                 entropy_levels: list | None = None,
+                 mask_thresholds: list | None = None,
+                 mask_levels: list | None = None,
+                 lower_cost_training_power: float | None = None,
+                 lower_cost_training_period: int | None = None
+                 ):
+        """
+        Loss function
+        ---
+        :param adjacency_matrix: adjacency matrix to calculate feasible paths
+        :param distances: distances between all pairs of nodes
+        :param flow_matrix: flow matrix (demand potential) between all pairs of nodes
+        :param utility_scale: to scale utilities (e^{ax}/(e^{ax}+e^{ay}) is sensitive to a
+        :param priority_rail: scaling of the distance with the new service (e.g. greater speed)
+        :param utility_gain_multiplier: balance between cost and utility gain
+        :param alpha_elu: lower values for the exponent function
+        :param entropy_thresholds: thresholds for increasing penalties with entropy
+        :param entropy_levels: penalty levels with entropy (following thresholds)
+        :param mask_thresholds: thresholds for increasing penalties with mask
+        :param mask_levels: penalty levels for assigning links that do not exist in the original graph (following thresholds)
+        :param lower_cost_training_power: during training, scale building cost B as B/[((N-n)^+)^p], where p is the power (parameter) and N is lower_cost_period
+        :param lower_cost_training_period: scaling period for lower_cost_training_power
+        """
+        super(UtilityBalancerSplitPaths, self).__init__()
+        self.adjacency_matrix = adjacency_matrix
+        self.feasible_paths = self._predefined_paths(self.adjacency_matrix)
+        self.distances = distances
+        self.flow_matrix = flow_matrix
+
+        # Loss components
+        self.utility_scale = utility_scale
+        self.priority_rail = priority_rail
+        self.utility_gain_multiplier = utility_gain_multiplier
+        self.alpha_elu = alpha_elu
+        self.elu = nn.ELU(self.alpha_elu)
+
+        if entropy_thresholds is None or entropy_levels is None:
+            self.entropy_thresholds = [0]
+            self.entropy_levels = [0]
+        else:
+            self.entropy_thresholds = entropy_thresholds
+            self.entropy_levels = entropy_levels
+
+        if mask_levels is None or mask_thresholds is None:
+            self.mask_levels = [0]
+            self.mask_thresholds = [0]
+        else:
+            self.mask_levels = mask_levels
+            self.mask_thresholds = mask_thresholds
+
+        if lower_cost_training_power is None:
+            self.lower_cost_training = False
+        else:
+            self.lower_cost_training = True
+            self.lower_cost_training_power = lower_cost_training_power
+            self.lower_cost_training_period = lower_cost_training_period
+
+    @staticmethod
+    def _predefined_paths(adjacency_matrix):
+        n = adjacency_matrix
+        all_paths = {(i, j): [] for i in range(n) for j in range(i + 1, n)}
+
+        def _progressive_check(_start_node, _current, path):
+            if _start_node > _current:
+                first = _start_node
+                second = _current
+            else:
+                first = _current
+                second = _start_node
+
+            # Ensure no loop
+            if _current in path:
+                return
+
+            path.append(_current)
+
+            if (first, second) not in all_paths or path not in all_paths[(first, second)]:
+                all_paths[(first, second)].append(path.copy())
+
+            for _neighbour in range(n):
+                if adjacency_matrix[_current, _neighbour] == 1 and _neighbour not in path:
+                    _progressive_check(start_node, _neighbour, path)
+
+            path.pop()
+
+        for start_node in range(n):
+            for neighbour in range(start_node + 1, n):
+                if adjacency_matrix[start_node, neighbour] == 1:
+                    _progressive_check(start_node, neighbour, [])
+
+        return all_paths
+
+    def forward(self,
+                soft_adj: torch.Tensor,
+                epoch: int) -> Tensor:
+        """
+        Function to calculate all components of the loss
+        :param soft_adj: soft adjacency matrix (optimisation argument)
+        :param epoch: current epoch to tune BCE loss
+        :return: total loss (scalar)
+        """
+        # First loss, cost of the infrastructure
+        loss_cost = torch.sum(torch.mul(soft_adj,self.distances))
+
+        # Add dynamic multiplier for the loss so it is not dominating in the learning period
+        if self.lower_cost_training:
+            loss_cost_multiplier = 1
+        else:
+            if epoch >= self.lower_cost_training_period:
+                loss_cost_multiplier = 1
+            else:
+                loss_cost_multiplier = self.lower_cost_training_period - epoch
+                loss_cost_multiplier = torch.pow(torch.Tensor([loss_cost_multiplier]),
+                                                 self.lower_cost_training_power).item()
+                loss_cost_multiplier = 1/loss_cost_multiplier
+
+
+        # Calculate the shortest paths
+        shortest_paths = self._shortest_path(soft_adj, distances, _delta=self.delta, _gamma=self.gamma)
+
+        # Choice probability matrix
+        exp_ut_rail = torch.exp(self.utility_scale * shortest_paths * self.priority_rail)
+        exp_ut_base = torch.exp(self.utility_scale * distances)
+        choice_matrix = exp_ut_rail / (exp_ut_rail + exp_ut_base)
+
+
+
