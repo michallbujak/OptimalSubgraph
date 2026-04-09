@@ -350,5 +350,5 @@ class UtilityBalancerSplitPaths(nn.Module):
         exp_ut_base = torch.exp(self.utility_scale * distances)
         choice_matrix = exp_ut_rail / (exp_ut_rail + exp_ut_base)
 
-
+print("XDXDXD")
 
