@@ -1,4 +1,8 @@
+from bisect import bisect
+
 import torch
+import torch.nn as nn
+from torch import Tensor
 
 def generate_sample_graph(
         no_nodes: int = 16,
@@ -105,3 +109,52 @@ def load_data(
     flow = torch.from_numpy(flow.to_numpy()).float()
 
     return adjacency_matrix, distances, flow
+
+
+class LossMultiplier(nn.Module):
+    def __init__(self,
+                 method: str,
+                 thresholds: list | None = None,
+                 levels: list | None = None,
+                 period: int | None = None,
+                 power: float | None = None,
+                 show_multiplier_structure: int = 0):
+        super(LossMultiplier, self).__init__()
+
+        assert method in ["linear", "stepwise"], "Incorrect type"
+        self.method = method
+        self.thresholds = thresholds
+        self.levels = levels
+        self.period = period
+        self.power = power
+
+        if self.method == "linear":
+            assert isinstance(period, int), "Incorrect type"
+            assert isinstance(power, float) or isinstance(power, int), "Incorrect type"
+
+        if self.method == "stepwise":
+            assert isinstance(thresholds, list), "Incorrect type"
+            assert isinstance(levels, list), "Incorrect type"
+            self.method = "stepwise"
+
+        if show_multiplier_structure >= 1:
+            print(self.method)
+
+        if show_multiplier_structure >= 2:
+            if self.method == "stepwise":
+                print(f"Thresholds: {thresholds}, Levels: {levels}")
+            else:
+                print(f"Period: {period}, Power: {power}")
+
+    def obtain_multiplier(self, epoch: int | None) -> float:
+        if epoch is None:
+            return 1.0
+        elif self.method == "stepwise":
+            return self.levels[bisect(self.thresholds, epoch)]
+        elif self.method == "linear":
+            if epoch < self.period:
+                return torch.pow(Tensor([self.period-epoch]), self.power).item()
+            else:
+                return 1.0
+        else:
+            return 1.0

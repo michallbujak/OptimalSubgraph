@@ -2,10 +2,10 @@ import torch
 import json
 import argparse
 
-from utils import generate_sample_graph, load_data
+from utils import generate_sample_graph, load_data, LossMultiplier
 from model import OptimalSubgraphGNN
 from training import train
-from loss_func import UtilityInfrastructureBalancer
+from loss_funcs import ShortestPathBalancer
 from evaluate import evaluate
 
 parser = argparse.ArgumentParser()
@@ -42,16 +42,47 @@ optimizer = torch.optim.Adam(
     **params.get('optimizer_args', {})
 )
 
-# Loss calculator
-loss_calculator = UtilityInfrastructureBalancer(**params.get('loss_args', {}))
+# Loss calculation
+loss_args = params.get('loss_args', {})
+CostMultiplier = LossMultiplier(
+    method=loss_args['cost_multiplier_method'],
+    thresholds=loss_args.get("cost_multiplier_thresholds", None),
+    levels=loss_args.get("cost_multiplier_levels", None),
+    period=loss_args.get("cost_multiplier_period", None),
+    power=loss_args.get("cost_multiplier_power", None),
+)
+
+EntropyMultiplier = LossMultiplier(
+    method=loss_args['entropy_multiplier_method'],
+    thresholds=loss_args.get("entropy_multiplier_thresholds", None),
+    levels=loss_args.get("entropy_multiplier_levels", None),
+    period=loss_args.get("entropy_multiplier_period", None),
+    power=loss_args.get("entropy_multiplier_power", None),
+)
+
+MaskMultiplier = LossMultiplier(
+    method=loss_args['mask_multiplier_method'],
+    thresholds=loss_args.get("mask_multiplier_thresholds", None),
+    levels=loss_args.get("mask_multiplier_levels", None),
+    period=loss_args.get("mask_multiplier_period", None),
+    power=loss_args.get("mask_multiplier_power", None),
+)
+
+LossFunction = ShortestPathBalancer(
+    adjacency_matrix=adj_matrix,
+    distances=distances,
+    flow_matrix=flow,
+    building_cost_multiplier=CostMultiplier,
+    entropy_multiplier=EntropyMultiplier,
+    mask_multiplier=MaskMultiplier,
+    alpha_elu=loss_args['alpha_elu'],
+)
 
 # Train
 soft_adj = train(
     model=model,
     adjacency_matrix=adj_matrix,
-    distances=distances,
-    flow=flow,
-    loss_calculator=loss_calculator,
+    loss_calculator=LossFunction,
     parameters=params,
     optimizer=optimizer
 )
@@ -61,7 +92,7 @@ evaluate(
     soft_adj=soft_adj,
     adjacency_matrix=adj_matrix,
     distances=distances,
-    loss_calculator=loss_calculator,
+    loss_calculator=LossFunction,
     flow=flow,
     **params['visualization']
 )

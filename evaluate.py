@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np
 
-from loss_func import UtilityInfrastructureBalancer
+from loss_parent_func import UtilityBalancerParent
 
 
 def evaluate(
@@ -14,11 +14,11 @@ def evaluate(
         adjacency_matrix: torch.Tensor,
         distances: torch.Tensor,
         flow: torch.Tensor,
-        loss_calculator: UtilityInfrastructureBalancer,
+        loss_calculator: UtilityBalancerParent,
         label_coordinates_path: str | Path,
         **kwargs
 ) -> None:
-    loss_dict = loss_calculator.exact_loss(soft_adj, adjacency_matrix, distances, flow)
+    loss_dict = loss_calculator.exact_loss(soft_adj)
     for k, v in loss_dict.items():
         print(f'Metric "{k}": {v}')
 
