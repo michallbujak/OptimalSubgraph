@@ -1,0 +1,17 @@
+[project]
+name = "Optimal Subgraph"
+version = "0.2.0"
+description = "Development of a model designed to obtain the optimal fast connection system on a original connection graph"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+dependencies = [
+    "matplotlib==3.10.8",
+    "pandas==3.0.2",
+    "torch==2.11.0",
+    "torch-geometric==2.7.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
