@@ -1,11 +1,12 @@
-import torch
 import json
 import argparse
+
+import torch
+import numpy as np
 
 from utils import generate_sample_graph, load_data, LossMultiplier
 from model import OptimalSubgraphGNN
 from training import train
-from loss_funcs import ShortestPathBalancer
 from evaluate import evaluate
 
 parser = argparse.ArgumentParser()
@@ -17,6 +18,7 @@ params = json.load(open(args.config))
 
 torch.manual_seed(params.get("seed", 123))
 torch.cuda.manual_seed(params.get("seed", 123))
+np.random.seed(params.get("seed", 123))
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -68,14 +70,21 @@ MaskMultiplier = LossMultiplier(
     power=loss_args.get("mask_multiplier_power", None),
 )
 
-LossFunction = ShortestPathBalancer(
+# Choose loss function
+try:
+    loss_class = getattr(__import__('loss_funcs'), loss_args['function_name'])
+except (KeyError, AttributeError, ImportError) as e:
+    print(f"Error: Could not retrieve loss function class. {e}")
+    raise NotImplementedError
+
+LossFunction = loss_class(
     adjacency_matrix=adj_matrix,
     distances=distances,
     flow_matrix=flow,
     building_cost_multiplier=CostMultiplier,
     entropy_multiplier=EntropyMultiplier,
     mask_multiplier=MaskMultiplier,
-    alpha_elu=loss_args['alpha_elu'],
+    **loss_args,
 )
 
 # Train
@@ -91,7 +100,6 @@ soft_adj = train(
 evaluate(
     soft_adj=soft_adj,
     adjacency_matrix=adj_matrix,
-    distances=distances,
     loss_calculator=LossFunction,
     flow=flow,
     **params['visualization']

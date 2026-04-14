@@ -12,8 +12,6 @@ from loss_parent_func import UtilityBalancerParent
 def evaluate(
         soft_adj: torch.Tensor | np.ndarray,
         adjacency_matrix: torch.Tensor,
-        distances: torch.Tensor,
-        flow: torch.Tensor,
         loss_calculator: UtilityBalancerParent,
         label_coordinates_path: str | Path,
         **kwargs

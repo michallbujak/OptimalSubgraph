@@ -24,6 +24,7 @@
     "initial_value": 0
   },
   "loss_args": {
+    "function_name": "ShortestPathBalancer",
     "delta": 1e-4,
     "gamma": 1e-1,
     "utility_scale": -1e-2,

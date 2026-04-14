@@ -54,7 +54,7 @@ def train(
         np.save('results/loss_progress.npy', loss_progress)
 
 
-    return soft_adj.cpu().detach().numpy()
+    return soft_adj
 
 
 def train_old(

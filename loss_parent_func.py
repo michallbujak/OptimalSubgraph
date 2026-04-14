@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 from bisect import bisect
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -105,17 +106,17 @@ class UtilityBalancerParent(nn.Module, ABC):
 
     def exact_loss(self, soft_adj: Tensor) -> dict:
         # Convert to hard adjacency matrix
-        adj_matrix_hard = soft_adj.round()
+        adj_matrix_hard = torch.round(soft_adj)
 
         # First loss, cost of the infrastructure
-        loss_cost = self.loss_cost_func(soft_adj, None)
+        loss_cost = self.loss_cost_func(adj_matrix_hard, None)
 
         # Second, utility gain
-        loss_utility = self.loss_utility_func(soft_adj, None)
+        loss_utility = self.loss_utility_func(adj_matrix_hard, None)
 
         # Illegal edges
         illegal_edges = adj_matrix_hard - self.adjacency_matrix
-        illegal_edges = illegal_edges.cpu().apply_(lambda x: x if x == 1 else 0)
+        illegal_edges = illegal_edges.cpu().detach().apply_(lambda x: x if x == 1 else 0)
 
         # Cover fraction
         cover_fraction = adj_matrix_hard.sum()/self.adjacency_matrix.sum()

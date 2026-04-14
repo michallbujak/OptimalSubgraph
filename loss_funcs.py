@@ -42,6 +42,7 @@ class ShortestPathBalancer(UtilityBalancerParent, ABC):
                Smaller values = better accuracy (though, negligible difference).
                Larger values = smoother gradients.
         :param alpha_elu: lower values for the exponent function
+        :param **kwargs: Additional arguments passed in config if not required in the loss function.
         """
         self.delta = delta
         self.gamma = gamma
@@ -84,7 +85,7 @@ class ShortestPathBalancer(UtilityBalancerParent, ABC):
 
         return _w_dist
 
-    def loss_utility_func(self, soft_adj: torch.Tensor, epoch: int | None) -> Tensor:
+    def loss_utility_func(self, soft_adj: torch.Tensor, epoch: int | None, **kwargs) -> Tensor:
         shortest_paths = self._shortest_path(soft_adj, self.distances, _delta=self.delta, _gamma=self.gamma)
 
         # Choice probability matrix
