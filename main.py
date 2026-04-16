@@ -1,5 +1,6 @@
 import json
 import argparse
+import random
 
 import torch
 import numpy as np
@@ -16,9 +17,11 @@ print(args)
 
 params = json.load(open(args.config))
 
+random.seed(params.get("seed", 123))
 torch.manual_seed(params.get("seed", 123))
 torch.cuda.manual_seed(params.get("seed", 123))
 np.random.seed(params.get("seed", 123))
+torch.use_deterministic_algorithms(True)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
