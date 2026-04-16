@@ -1,4 +1,5 @@
 from abc import ABC
+from collections import defaultdict
 
 import torch
 import torch.nn as nn
@@ -101,3 +102,69 @@ class ShortestPathBalancer(UtilityBalancerParent, ABC):
         utility_gain = self.flow_matrix * choice_matrix * distance_saved
 
         return self.utility_gain_multiplier * utility_gain.sum()
+
+
+
+class AllPathsBalancer(UtilityBalancerParent, ABC):
+    def __init__(self,
+                 adjacency_matrix: Tensor,
+                 distances: Tensor,
+                 flow_matrix: Tensor,
+                 building_cost_multiplier: LossMultiplier,
+                 entropy_multiplier: LossMultiplier,
+                 mask_multiplier: LossMultiplier,
+                 utility_scale: float = -1e-2,
+                 priority_rail: float = 0.5,
+                 utility_gain_multiplier: float = 1.0,
+                 **kwargs):
+        super().__init__(
+            adjacency_matrix=adjacency_matrix,
+            distances=distances,
+            flow_matrix=flow_matrix,
+            building_cost_multiplier=building_cost_multiplier,
+            entropy_multiplier=entropy_multiplier,
+            mask_multiplier=mask_multiplier,
+            utility_scale=utility_scale,
+            priority_rail=priority_rail,
+            utility_gain_multiplier=utility_gain_multiplier
+        )
+        self.predefined_paths = self._predefined_paths_foo(adjacency_matrix)
+
+    @staticmethod
+    def _predefined_paths_foo(adjacency_matrix):
+        n = len(adjacency_matrix)
+        adj_list = defaultdict(list)
+
+        def find_all_paths(u, target, path):
+            path = path + [u]
+
+            if u == target:
+                return [path]
+
+            found_paths = []
+            for neighbour in adj_list[u]:
+                if neighbour not in path:
+                    # Recursively all paths from the neighbour to the target
+                    new_results = find_all_paths(neighbour, target, path)
+                    # Use extend to add all found path-lists to our collection
+                    found_paths.extend(new_results)
+
+            return found_paths
+
+        # Convert adjacency matrix to adjacency list
+        for i in range(n):
+            for j in range(i + 1, n):
+                if adjacency_matrix[i][j] == 1:
+                    adj_list[i].append(j)
+                    adj_list[j].append(i)
+
+        paths_dict = {}
+        for i in range(n):
+            for j in range(i + 1, n):
+                # Pass an empty list for the initial path
+                paths_dict[(i, j)] = find_all_paths(i, j, [])
+
+        return paths_dict
+
+    def loss_utility_func(self, soft_adj: torch.Tensor, epoch: int | None, **kwargs) -> Tensor:
+        x = 0
