@@ -128,18 +128,46 @@ class AllPathsBalancer(UtilityBalancerParent, ABC):
             priority_rail=priority_rail,
             utility_gain_multiplier=utility_gain_multiplier
         )
-        self.predefined_paths = self._predefined_paths_foo(adjacency_matrix)
+        self.shortest_paths = self._shortest_paths(adjacency_matrix, self.distances)
+        self.predefined_paths = self._predefined_paths_foo(
+            adjacency_matrix,
+            self.shortest_paths,
+            kwargs.get("max_distance", 1.5),
+        )
+        self.extended_paths, self.extended_distances, self.max_paths = self._amend_predefined_paths()
+        self.baseline_utility = self._baseline_utility()
 
     @staticmethod
-    def _predefined_paths_foo(adjacency_matrix):
+    def _shortest_paths(adjacency_matrix: Tensor, distances: Tensor, infty=1e7) -> Tensor:
+        """ Shortest path just to calculated predefined baseline utility and find feasible paths """
+        dist = distances.clone()
+        dist[adjacency_matrix == 0] = infty
+        dist.diagonal().fill_(0)
+
+        n = dist.size(0)
+
+        for k in range(n):
+            dist = torch.minimum(dist, dist[:, k].unsqueeze(1) + dist[k, :].unsqueeze(0))
+
+        return dist
+
+    @staticmethod
+    def _predefined_paths_foo(adjacency_matrix: Tensor, min_distances: Tensor, max_distance: float) -> dict[tuple[int], list[int]]:
         n = len(adjacency_matrix)
         adj_list = defaultdict(list)
 
         def find_all_paths(u, target, path):
             path = path + [u]
 
+            if len(path) >= 2:
+                total_distance = 0
+                for _node_ind in range(len(path) - 1):
+                    total_distance += min_distances[path[_node_ind], path[_node_ind + 1]]
+                if total_distance > max_distance * min_distances[path[0], target]:
+                    return []
+
             if u == target:
-                return [path]
+                return [(path, total_distance.item())]
 
             found_paths = []
             for neighbour in adj_list[u]:
@@ -164,7 +192,47 @@ class AllPathsBalancer(UtilityBalancerParent, ABC):
                 # Pass an empty list for the initial path
                 paths_dict[(i, j)] = find_all_paths(i, j, [])
 
-        return paths_dict
+        return dict(paths_dict)
+
+    def _amend_predefined_paths(self):
+        def _foo(_list, _size):
+            out = torch.zeros((_size, _size), device=self.adjacency_matrix.device)
+            for i in range(len(_list)-1):
+                out[_list[i], _list[i+1]] = 1
+            return out
+        n = len(self.adjacency_matrix)
+
+        new_dict = {key: [(_foo(i, n), j) for (i, j) in val] for key, val in self.predefined_paths.items()}
+
+        max_paths = max(len(path) for path in self.predefined_paths.values())
+        extended_path_tensor = torch.zeros((n, n, max_paths, n, n), device=self.adjacency_matrix.device)
+        extended_value_tensor = torch.zeros((n, n, max_paths), device=self.adjacency_matrix.device)
+        for key, path_list in new_dict.items():
+            for path_no, path in enumerate(path_list):
+                extended_path_tensor[*key, path_no] = path[0]
+                extended_value_tensor[*key, path_no] = path[1]
+
+        return extended_path_tensor, extended_value_tensor, max_paths
+
+
+    def _baseline_utility(self):
+        return torch.exp(self.utility_scale * self.shortest_paths)
 
     def loss_utility_func(self, soft_adj: torch.Tensor, epoch: int | None, **kwargs) -> Tensor:
-        x = 0
+        # Maximum number of predefined paths
+        soft_extended = torch.clone(self.extended_paths)
+        soft_extended[:, :, :] = soft_adj
+
+        # Check probability of individual links existing
+        probs_partial = soft_extended*self.extended_paths
+
+        # Don't count 0's
+        probs_partial_ones = torch.where(probs_partial == 0, torch.ones_like(probs_partial), probs_partial)
+
+        # Prod of nonzero elements
+        probs_agg = torch.prod(probs_partial_ones, dim=-1)
+        probs_agg = torch.prod(probs_agg, dim=-1)
+
+        utility_gain = 1
+
+        return self.utility_gain_multiplier * utility_gain.sum()

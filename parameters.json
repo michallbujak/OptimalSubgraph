@@ -45,7 +45,8 @@
     "cost_multiplier_levels": [5e-1, 4e-1, 3e-1, 2e-1, 1e-1],
     "delta": 1e-4,
     "gamma": 1e-1,
-    "alpha_elu": 1
+    "alpha_elu": 1,
+    "max_distance": 1.5
   },
   "optimizer_args": {
     "lr": 1e-3,
