@@ -25,12 +25,9 @@
   },
   "loss_args": {
     "function_name": "AllPathsBalancer",
-    "delta": 1e-4,
-    "gamma": 1e-1,
     "utility_scale": -1e-2,
     "priority_rail": 0.5,
     "utility_gain_multiplier": -1e-3,
-    "alpha_elu": 1,
     "entropy_multiplier_method": "linear",
     "entropy_multiplier_thresholds": [1e2, 3e2, 5e2, 8e2],
     "entropy_multiplier_levels": [1e0, 1e0, 1e0, 1e1, 1e1],
@@ -45,7 +42,10 @@
     "cost_multiplier_power": -1,
     "cost_multiplier_period": 800,
     "cost_multiplier_thresholds": [1e2, 3e2, 5e2, 8e2],
-    "cost_multiplier_levels": [5e-1, 4e-1, 3e-1, 2e-1, 1e-1]
+    "cost_multiplier_levels": [5e-1, 4e-1, 3e-1, 2e-1, 1e-1],
+    "delta": 1e-4,
+    "gamma": 1e-1,
+    "alpha_elu": 1
   },
   "optimizer_args": {
     "lr": 1e-3,
