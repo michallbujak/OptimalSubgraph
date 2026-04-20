@@ -226,12 +226,15 @@ class AllPathsBalancer(UtilityBalancerParent, ABC):
         # Check probability of individual links existing
         probs_partial = soft_extended*self.extended_paths
 
-        # Don't count 0's
+        # Don't count 0's in the product
         probs_partial_ones = torch.where(probs_partial == 0, torch.ones_like(probs_partial), probs_partial)
-
-        # Prod of nonzero elements
         probs_agg = torch.prod(probs_partial_ones, dim=-1)
         probs_agg = torch.prod(probs_agg, dim=-1)
+        has_non_zeros = (probs_partial != 0).any(dim=(-2, -1))
+        probs_agg = torch.where(has_non_zeros, probs_agg, torch.zeros_like(probs_agg))
+
+        # Prod of nonzero elements
+
 
         utility_gain = 1
 
