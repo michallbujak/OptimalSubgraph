@@ -230,10 +230,10 @@ class AllPathsBalancer(UtilityBalancerParent, ABC):
         probs_partial_ones = torch.where(probs_partial == 0, torch.ones_like(probs_partial), probs_partial)
         probs_agg = torch.prod(probs_partial_ones, dim=-1)
         probs_agg = torch.prod(probs_agg, dim=-1)
+        # Prod of nonzero elements
         has_non_zeros = (probs_partial != 0).any(dim=(-2, -1))
         probs_agg = torch.where(has_non_zeros, probs_agg, torch.zeros_like(probs_agg))
 
-        # Prod of nonzero elements
 
 
         utility_gain = 1
