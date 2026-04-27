@@ -136,6 +136,7 @@ class AllPathsBalancer(UtilityBalancerParent, ABC):
         )
         self.extended_paths, self.extended_distances, self.max_paths = self._amend_predefined_paths()
         self.baseline_utility = self._baseline_utility()
+        self.reliability_multiplier = kwargs.get("reliability_multiplier", -10.0)
 
     @staticmethod
     def _shortest_paths(adjacency_matrix: Tensor, distances: Tensor, infty=1e7) -> Tensor:
@@ -234,8 +235,18 @@ class AllPathsBalancer(UtilityBalancerParent, ABC):
         has_non_zeros = (probs_partial != 0).any(dim=(-2, -1))
         probs_agg = torch.where(has_non_zeros, probs_agg, torch.zeros_like(probs_agg))
 
+        # Calculate per path utility
+        utilities = self.reliability_multiplier*torch.log(probs_agg) + self.extended_distances*self.priority_rail
+        utilities = torch.exp(self.utility_scale * utilities)
 
+        # Choice probability
+        utilities_base = utilities.sum(dim=-1)
+        utilities_base = utilities_base + self.baseline_utility
+        utilities_base = utilities_base.unsqueeze(-1)
 
-        utility_gain = 1
+        choice_probabilities = utilities/utilities_base
+
+        # Final utility calculation
+        utility_gain = choice_probabilities.sum(dim=-1)*self.flow_matrix*torch.sqrt(self.shortest_paths)
 
         return self.utility_gain_multiplier * utility_gain.sum()

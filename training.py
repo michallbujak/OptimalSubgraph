@@ -38,6 +38,9 @@ def train(
         if (epoch % 50 == 0) & (parameters.get("show_training_progress", False)):
             print(f'Epoch {epoch}, Loss: {loss_progress[-1]}')
 
+        if epoch == 100:
+            pass
+
     if parameters.get("show_training_output", True):
         import os
         import matplotlib.pyplot as plt
