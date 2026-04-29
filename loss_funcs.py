@@ -247,6 +247,6 @@ class AllPathsBalancer(UtilityBalancerParent, ABC):
         choice_probabilities = utilities/utilities_base
 
         # Final utility calculation
-        utility_gain = choice_probabilities.sum(dim=-1)*self.flow_matrix*torch.sqrt(self.shortest_paths)
+        utility_gain = choice_probabilities.sum(dim=-1)*self.flow_matrix*self.shortest_paths
 
         return self.utility_gain_multiplier * utility_gain.sum()
