@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torch_geometric.nn import GCNConv, Sequential
+from torch_geometric.nn import GCNConv, Sequential, DenseGCNConv
 from torch_geometric.utils import dense_to_sparse
 
 class OptimalSubgraphGNN(nn.Module):
@@ -21,18 +21,29 @@ class OptimalSubgraphGNN(nn.Module):
         mp_act_class = getattr(nn, mp_activation)
         mlp_act_class = getattr(nn, mlp_activation)
 
+        self.sparse_formulation = kwargs.get("sparse_GCNN", False)
+
         # Message passing (nodes)
         if len(mp_units) > 0:
-            header = "x, edge_index, edge_weight -> x"
-            mp_architecture = []
+            if self.sparse_formulation:
+                header = "x, edge_index, edge_weight -> x"
+                mp_architecture = []
+            else:
+                self.mp_architecture = nn.ModuleList()
             prev = in_channels
             for mp_unit in mp_units:
-                gcn = GCNConv(prev, mp_unit, normalize=False)
-                mp_architecture.append((gcn, header))
-                mp_architecture.append(mp_act_class())
+                if self.sparse_formulation:
+                    gcn = GCNConv(prev, mp_unit, normalize=False)
+                    mp_architecture.append((gcn, header))
+                    mp_architecture.append(mp_act_class())
+                else:
+                    self.mp_architecture.append(DenseGCNConv(prev, mp_unit))
+                    self.mp_architecture.append(mp_act_class())
                 prev = mp_unit
 
-            self.mp_architecture = Sequential("x, edge_index, edge_weight", mp_architecture)
+            if self.sparse_formulation:
+                self.mp_architecture = Sequential("x, edge_index, edge_weight", mp_architecture)
+
             self.embedding_dim = mp_units[-1]
         else:
             self.mp_architecture = nn.Identity()
@@ -63,7 +74,6 @@ class OptimalSubgraphGNN(nn.Module):
         if kwargs.get("force_initial_value", False):
             final_linear_layer = self.edge_mlp_architecture[-1]
             nn.init.constant_(final_linear_layer.bias, kwargs.get("initial_value", 3.0))
-            final_linear_layer.bias.data.fill_(0.0)
             nn.init.xavier_uniform_(final_linear_layer.weight, gain=0.01)
 
         self.prior_logit_shift = prior_logit_shift
@@ -73,18 +83,33 @@ class OptimalSubgraphGNN(nn.Module):
                 original_adj: torch.Tensor):
         # Use learnable adjacency matrix or original
         if self.adapt_adj is not None:
-            edge_index, edge_weight = dense_to_sparse(torch.relu(self.adapt_adj))
+            lr_adj_matrix = torch.relu(self.adapt_adj)
+            lr_adj_matrix = (lr_adj_matrix + lr_adj_matrix.T) / 2.0
         else:
-            edge_index, edge_weight = dense_to_sparse(torch.relu(original_adj))
+            lr_adj_matrix = torch.relu(original_adj)
 
         # First, node embeddings
-        x = self.mp_architecture(x, edge_index, edge_weight)
+        if self.sparse_formulation:
+            edge_index, edge_weight = dense_to_sparse(lr_adj_matrix)
+            x = self.mp_architecture(x, edge_index, edge_weight)
+
+        else:
+            x_in = x.unsqueeze(0) if x.dim() == 2 else x
+            adj_in = lr_adj_matrix.unsqueeze(0) if lr_adj_matrix.dim() == 2 else lr_adj_matrix
+
+            for layer in self.mp_architecture:
+                if isinstance(layer, DenseGCNConv):
+                    x_in = layer(x_in, adj_in)
+                else:
+                    x_in = layer(x_in)
+
+            x = x_in.squeeze(0)
 
         # Second, prepare pairwise features for every possible edge
         N = x.shape[0]
         h_i = x.unsqueeze(1).expand(N, N, -1)
         h_j = x.unsqueeze(0).expand(N, N, -1)
-        edge_feat = original_adj.unsqueeze(-1)  # (N, N, 1)
+        edge_feat = lr_adj_matrix.unsqueeze(-1)  # (N, N, 1)
         pair_input = torch.cat([h_i, h_j, edge_feat], dim=-1)  # (N, N, 2*emb + 1)
 
         # Third, apply mlp part
