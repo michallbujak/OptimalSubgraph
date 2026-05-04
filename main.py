@@ -51,6 +51,7 @@ optimizer = torch.optim.Adam(
 loss_args = params.get('loss_args', {})
 CostMultiplier = LossMultiplier(
     method=loss_args['cost_multiplier_method'],
+    base_level=loss_args.get('cost_mutliplier_base', 1),
     thresholds=loss_args.get("cost_multiplier_thresholds", None),
     levels=loss_args.get("cost_multiplier_levels", None),
     period=loss_args.get("cost_multiplier_period", None),
@@ -59,6 +60,7 @@ CostMultiplier = LossMultiplier(
 
 EntropyMultiplier = LossMultiplier(
     method=loss_args['entropy_multiplier_method'],
+    base_level=loss_args.get('entropy_mutliplier_base', None),
     thresholds=loss_args.get("entropy_multiplier_thresholds", None),
     levels=loss_args.get("entropy_multiplier_levels", None),
     period=loss_args.get("entropy_multiplier_period", None),
@@ -67,6 +69,7 @@ EntropyMultiplier = LossMultiplier(
 
 MaskMultiplier = LossMultiplier(
     method=loss_args['mask_multiplier_method'],
+    base_level=loss_args.get('mask_mutliplier_base', None),
     thresholds=loss_args.get("mask_multiplier_thresholds", None),
     levels=loss_args.get("mask_multiplier_levels", None),
     period=loss_args.get("mask_multiplier_period", None),

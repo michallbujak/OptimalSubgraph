@@ -35,11 +35,8 @@ def train(
 
         loss_progress = np.append(loss_progress, loss.item())
 
-        if (epoch % 50 == 0) & (parameters.get("show_training_progress", False)):
+        if (epoch % 100 == 0) & (parameters.get("show_training_progress", False)):
             print(f'Epoch {epoch}, Loss: {loss_progress[-1]}')
-
-        if epoch == 100:
-            pass
 
     if parameters.get("show_training_output", True):
         import os

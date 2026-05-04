@@ -32,8 +32,10 @@ Loss comprises four components:
 ### Loss 1: Connectedness
 The loss is a direct sum of elements of the adjacency matrix
 
-### Loss 2: Utility
-**Note:** multipliation between matrices refers to elementwise matrix multiplication.
+### Loss 2: Utility (two versions)
+**Note:** multiplication between matrices refers to elementwise matrix multiplication.
+
+#### ShortestPathBalancer
 
 **Part 1:** `shortest_paths`:
 1. Calculate weighted shortest paths `shortest_paths` (details on the implementation are in document _shortest_path_algorithm_).
@@ -50,7 +52,25 @@ The loss is a direct sum of elements of the adjacency matrix
 
 **Utility formulation:** <br>
 Using `flow` input data, calculate `utility_gain = flow * choice_matrix * distance_saved`. 
-Utility gain is then multiplied by `utility_gain_multiplier`.
+Utility gain is multiplied by `utility_gain_multiplier`.
+
+#### AllPathsBalancer
+** Part 1: ** `shortest_paths`.
+
+** Part 2: ** `predefined_paths`:
+1. Precompute feasible paths between each pairs of points. Allow for paths that are at maximum of length of the shortest path multiplied by `max_distance`.
+
+** Part 3: ** `probs_agg`:
+1. For each feasible path, according to the current solution, calculate its existence probability (product of the corresponding values for each underlying links).
+
+** Part 4: ** `choice_probabilities`:
+1. Formulate utility for each path as `reliability_multiplier * log(probs_agg) + self.extended_distances*self.priority_rail`.
+2. Calculate choice probability with softmax (adding to the pool of feasible choices the baseline utility).
+
+**Utility formulation:** <br>
+Using `flow` input data, calculate `utility_gain = flow * choice_probabilities * self.shortest_paths`. 
+Utility gain is multiplied by `utility_gain_multiplier`.
+
 
 ### Loss 3: Entropy
 Calculate entropy loss (`soft_adj * (1 - soft_adj`).

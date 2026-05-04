@@ -18,17 +18,18 @@ Section described under `input` and `random_graph`.
 ## Model arguments
 Section described under `model_args`
 
-| Name                        | Description                                                                                   |
-|-----------------------------|-----------------------------------------------------------------------------------------------|
-| mp_units                    | Message passing numbers of neurons in consecutive layers of GCNN part                         |
-| mp_activation               | Activation function at the end of each GCNN layer                                             |
-| mlp_units                   | Multilayered perceptron numbers of neurons in each layer                                      |
-| mlp_activation              | Activation function for each MLP layer → new soft adjacency matrix                            |
-| final_activation            | Final activation when calculating model output – new soft adjacency matrix                    |
-| final_activation_parameters | Additional paramneters for the final activaiton layer, e.g. 'tau' for gumbel_sfoftmax.        |
-| prior_logit_shift           | Initial logits can be shifted for benefitting close to the original adjacency matrix (>0)     |
-| force_initial_value         | Initialise the neural network (at the last layer) to positive values acorrding to adj. matrix |
-| initial_value               | Value to which `force_initial_value` initialises the network.                                 |
+| Name                        | Description                                                                                                                 |
+|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| sparse_implementation       | Decide whether you want to use sparse or dense GCNN implementation                                                          |
+| mp_units                    | Message passing numbers of neurons in consecutive layers of GCNN part                                                       |
+| mp_activation               | Activation function at the end of each GCNN layer                                                                           |
+| mlp_units                   | Multilayered perceptron numbers of neurons in each layer                                                                    |
+| mlp_activation              | Activation function for each MLP layer → new soft adjacency matrix                                                          |
+| final_activation            | Final activation when calculating model output – new soft adjacency matrix. Recommended: use `Sigmoid` or `gumbel_softmax`. |
+| final_activation_parameters | Additional paramneters for the final activaiton layer, e.g. 'tau' for gumbel_sfoftmax.                                      |
+| prior_logit_shift           | Initial logits can be shifted for benefitting close to the original adjacency matrix (>0)                                   |
+| force_initial_value         | Initialise the neural network (at the last layer) to positive values acorrding to adj. matrix                               |
+| initial_value               | Value to which `force_initial_value` initialises the network.                                                               |
 
 ## Loss calculation arguments
 Section under `loss_args`.
@@ -44,7 +45,8 @@ The following refers to cost, entropy and mask multipliers. Each denoted as `<lo
 
 | Name        | Description                                                                                                                                           |
 |-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| method      | Choose either `linear` or `stepwise`. Linear indicates mutiplying proportionally to epoch, stepwise according to its name.                            |
+| method      | Choose either `proportional` or `stepwise`. Linear indicates mutiplying proportionally to epoch, stepwise according to its name.                      |
+| base        | The final multiplier is a product of the base and the epoch-derived multiplier                                                                        |
 | thresholds  | Loads if `method == stepwise`: Thresholds for multiplier at which respective level applies.                                                           |
 | mask_levels | Loads if `method == stepwise`: Levels of the multiplier at the threshold (step)                                                                       |
 | power       | Loads if `method == stepwise`: multiplier for epoch e is defined as $\max((P - e)^p, 1)$, where p stand for power and P for period, by default $p=-1$ |

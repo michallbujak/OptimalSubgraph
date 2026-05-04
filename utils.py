@@ -114,6 +114,7 @@ def load_data(
 class LossMultiplier(nn.Module):
     def __init__(self,
                  method: str,
+                 base_level: float = 1,
                  thresholds: list | None = None,
                  levels: list | None = None,
                  period: int | None = None,
@@ -121,14 +122,15 @@ class LossMultiplier(nn.Module):
                  show_multiplier_structure: int = 0):
         super(LossMultiplier, self).__init__()
 
-        assert method in ["linear", "stepwise"], "Incorrect type"
+        assert method in ["proportional", "stepwise"], "Incorrect type"
         self.method = method
+        self.base = base_level
         self.thresholds = thresholds
         self.levels = levels
         self.period = period
         self.power = power
 
-        if self.method == "linear":
+        if self.method == "proportional":
             assert isinstance(period, int), "Incorrect type"
             assert isinstance(power, float) or isinstance(power, int), "Incorrect type"
 
@@ -148,13 +150,13 @@ class LossMultiplier(nn.Module):
 
     def obtain_multiplier(self, epoch: int | None) -> float:
         if epoch is None:
-            return 1.0
+            return self.base
         elif self.method == "stepwise":
-            return self.levels[bisect(self.thresholds, epoch)]
-        elif self.method == "linear":
+            return self.base * self.levels[bisect(self.thresholds, epoch)]
+        elif self.method == "proportional":
             if epoch < self.period:
-                return torch.pow(Tensor([self.period-epoch]), self.power).item()
+                return self.base * torch.pow(Tensor([self.period-epoch]), self.power).item()
             else:
-                return 1.0
+                return self.base
         else:
             return 1.0
