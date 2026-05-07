@@ -20,7 +20,7 @@
     "final_activation_parameters": {
       "tau": 1
     },
-    "prior_logit_shift": 3,
+    "prior_logit_shift": 0,
     "force_initial_value": false,
     "initial_value": 0
   },
