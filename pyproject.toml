@@ -4,7 +4,7 @@ version = "0.2.0"
 description = "Development of a model designed to obtain the optimal fast connection system on a original connection graph"
 readme = "README.md"
 requires-python = ">=3.12"
-license = {text = "MIT"}
+license = "MIT"
 dependencies = [
     "matplotlib==3.10.8",
     "pandas==3.0.2",
