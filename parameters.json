@@ -21,8 +21,8 @@
       "tau": 1
     },
     "prior_logit_shift": 0,
-    "force_initial_value": false,
-    "initial_value": 0
+    "force_initial_value": true,
+    "initial_value": 1
   },
   "loss_args": {
     "function_name": "AllPathsBalancer",
