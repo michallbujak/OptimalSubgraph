@@ -1,5 +1,5 @@
 [project]
-name = "Optimal Subgraph"
+name = "OptimalSubgraph"
 version = "0.2.0"
 description = "Development of a model designed to obtain the optimal fast connection system on a original connection graph"
 readme = "README.md"
